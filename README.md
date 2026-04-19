@@ -1,10 +1,10 @@
-# Mercy College Work Dashboard
+# MercyU Work Dashboard
 
-Personal work command center for Mercy College of Health Sciences staff.
+Personal work command center for Mercy University staff.
 
 ## Overview
 
-A single-page HTML dashboard providing quick access to all key tools, enrollment data, upcoming events, and social media feeds — built in the MCHS brand (purple + green).
+A single-page HTML dashboard providing quick access to all key tools, enrollment data, upcoming events, and social media feeds — built in the MercyU brand (purple + green).
 
 ## Features
 
