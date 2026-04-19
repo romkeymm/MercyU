@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCHS Work Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --p: #4A2C6B;
+      --pd: #2E1A42;
+      --pm: #5D3880;
+      --pl: #F0EBF8;
+      --g: #5A8C3C;
+      --gd: #3A5C26;
+      --gl: #7AB558;
+      --gold: #C8A84B;
+      --w: #fff;
+      --off: #F7F5F2;
+      --bdr: #E8E4DF;
+      --tx: #1A1A1A;
+      --txm: #666;
+      --txl: #999;
+      --li: #0A66C2;
+      --fb: #1877F2;
+      --ig: #C13584;
+      --slate: #E8500A;
+      --wp: #21759B;
+      --serif: 'Libre Baskerville', Georgia, serif;
+      --sans: 'Source Sans 3', Arial, sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: #EDEAE6;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .d {
+      font-family: var(--sans);
+      background: var(--w);
+      border: 0.5px solid var(--bdr);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 1100px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+
+    /* ── Top Nav ── */
+    .topnav {
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      border-bottom: 0.5px solid var(--bdr);
+    }
+    .tn-logo { display: flex; align-items: center; gap: 10px; }
+    .tn-logomark { width: 22px; height: 26px; flex-shrink: 0; }
+    .tn-brand { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--tx); letter-spacing: -0.02em; }
+    .tn-brand em { color: var(--p); font-style: normal; }
+    .tn-links { display: flex; gap: 2px; }
+    .tn-link { font-size: 11px; font-weight: 600; color: var(--txm); padding: 5px 10px; border-radius: 5px; text-decoration: none; transition: background 0.1s; }
+    .tn-link:hover { background: var(--off); color: var(--tx); }
+    .tn-link.active { background: var(--pl); color: var(--p); }
+    .tn-right { display: flex; align-items: center; gap: 8px; }
+    .tn-date { font-size: 11px; color: var(--txl); }
+    .tn-badge { background: var(--g); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 4px; letter-spacing: 0.04em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--p);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hero-greeting { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 3px; font-family: var(--sans); }
+    .hero-title { font-family: var(--serif); font-size: 17px; color: #fff; font-style: italic; line-height: 1.25; }
+    .hero-actions { display: flex; gap: 8px; align-items: center; }
+    .hbtn {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 7px 14px; border-radius: 5px; text-decoration: none; cursor: pointer;
+      white-space: nowrap; border: none; display: inline-block;
+    }
+    .hbtn-g { background: var(--g); color: #fff; }
+    .hbtn-o { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+    .hbtn:hover { opacity: 0.9; }
+
+    /* ── Metrics Strip ── */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 0.5px solid var(--bdr); }
+    .metric { padding: 12px 18px; border-right: 0.5px solid var(--bdr); }
+    .metric:last-child { border-right: none; }
+    .metric-val { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--p); line-height: 1; margin-bottom: 2px; }
+    .metric-val.placeholder { font-size: 18px; color: #CCC; letter-spacing: 0.05em; }
+    .metric-lbl { font-size: 10px; color: var(--txl); letter-spacing: 0.02em; margin-bottom: 3px; }
+    .metric-note { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; display: inline-block; background: var(--pl); color: var(--p); opacity: 0.75; }
+
+    /* ── Tool Tiles ── */
+    .section { padding: 14px 20px; }
+    .section-hd { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txl); margin-bottom: 10px; }
+    .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .tile {
+      background: var(--w); border: 0.5px solid var(--bdr); border-radius: 9px;
+      padding: 12px; text-decoration: none; display: block; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .tile:hover { border-color: var(--p); background: var(--pl); }
+    .tile-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .tile-name { font-size: 12px; font-weight: 700; color: var(--tx); margin-bottom: 2px; line-height: 1.3; }
+    .tile-sub { font-size: 10px; color: var(--txm); line-height: 1.35; }
+    .tile-chip { display: inline-block; margin-top: 5px; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+    .chip-crm { background: #FCE8E0; color: #8B2A00; }
+    .chip-wp { background: #E0EEF5; color: #0D4F6E; }
+    .chip-live { background: #E6F0FB; color: #0C447C; }
+    .chip-brand { background: var(--pl); color: var(--p); }
+
+    /* ── Mid Row ── */
+    .mid { display: grid; grid-template-columns: 1fr 1fr; border-top: 0.5px solid var(--bdr); border-bottom: 0.5px solid var(--bdr); }
+    .pane { padding: 14px 20px; border-right: 0.5px solid var(--bdr); }
+    .pane:last-child { border-right: none; }
+    .pane-hd { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--p); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .pane-badge { font-size: 9px; font-weight: 700; border-radius: 3px; padding: 2px 7px; }
+    .bg { background: #EAF4E0; color: #2E5E18; }
+    .ba { background: #FEF4E0; color: #7A4A00; }
+    .bb { background: #E6F0FB; color: #0C447C; }
+    .bp { background: var(--pl); color: var(--p); }
+    .br { background: #FDECEA; color: #8B1A1A; }
+
+    /* Tasks */
+    .task-r { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid var(--bdr); }
+    .task-r:last-child { border-bottom: none; }
+    .tchk { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid var(--bdr); flex-shrink: 0; cursor: pointer; }
+    .tchk.done { background: var(--g); border-color: var(--g); }
+    .ttx { font-size: 12px; color: var(--tx); flex: 1; cursor: pointer; line-height: 1.3; }
+    .ttx.done { text-decoration: line-through; color: var(--txl); }
+    .tch { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; background: var(--pl); color: var(--p); }
+    .task-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+    .tf-note { font-size: 10px; color: var(--txl); }
+    .tf-lk { font-size: 10px; font-weight: 700; color: var(--p); text-decoration: none; }
+
+    /* Events */
+    .ev-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--bdr); align-items: flex-start; }
+    .ev-item:last-child { border-bottom: none; }
+    .ev-box { width: 38px; flex-shrink: 0; text-align: center; background: var(--off); border: 0.5px solid var(--bdr); border-radius: 6px; padding: 3px 0; }
+    .ev-mo { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--g); }
+    .ev-dy { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--p); line-height: 1.1; }
+    .ev-title { font-size: 12px; font-weight: 700; color: var(--tx); margin-bottom: 2px; }
+    .ev-meta { font-size: 10px; color: var(--txm); }
+    .ev-chip { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; margin-top: 3px; }
+    .ec-ac { background: var(--pl); color: var(--p); }
+    .ec-ev { background: #EAF4E0; color: #2E5E18; }
+    .ec-ad { background: #FEF4E0; color: #7A4A00; }
+    .ec-fa { background: #FCE8E0; color: #8B2A00; }
+    .ev-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+    .ev-note { font-size: 10px; color: var(--txl); }
+    .ev-cal { font-size: 10px; font-weight: 700; color: var(--p); text-decoration: none; }
+
+    .auth-err {
+      display: none; background: #FDECEA; border: 0.5px solid #F5C6C6;
+      border-radius: 7px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .ae-t { font-size: 11px; font-weight: 700; color: #8B1A1A; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .ae-b { font-size: 10px; color: #6B1212; line-height: 1.5; margin-bottom: 7px; }
+    .ae-btn { display: inline-block; background: #8B1A1A; color: #fff; font-size: 10px; font-weight: 700; padding: 5px 12px; border-radius: 4px; text-decoration: none; }
+
+    /* ── Bottom Row ── */
+    .bottom { display: grid; grid-template-columns: 1fr 220px; border-top: 0.5px solid var(--bdr); }
+    .social-pane { padding: 14px 20px; border-right: 0.5px solid var(--bdr); }
+
+    /* Social Tabs */
+    .stabs { display: flex; border-bottom: 0.5px solid var(--bdr); margin-bottom: 10px; }
+    .stab { flex: 1; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; color: var(--txm); cursor: pointer; border-bottom: 2px solid transparent; }
+    .stab.act-li { color: var(--li); border-bottom-color: var(--li); }
+    .stab.act-fb { color: var(--fb); border-bottom-color: var(--fb); }
+    .stab.act-ig { color: var(--ig); border-bottom-color: var(--ig); }
+    .post { padding: 8px 0; border-bottom: 0.5px solid var(--bdr); }
+    .post:last-child { border-bottom: none; }
+    .post-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+    .post-ava { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+    .post-name { font-size: 11px; font-weight: 700; color: var(--tx); }
+    .post-time { font-size: 10px; color: var(--txl); }
+    .post-body { font-size: 11px; color: var(--tx); line-height: 1.45; margin-bottom: 5px; }
+    .post-stats { display: flex; gap: 10px; }
+    .ps { font-size: 10px; color: var(--txm); }
+    .ps span { font-weight: 700; color: var(--tx); }
+    .plat-row { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+    .plat-lbl { font-size: 10px; color: var(--txl); }
+    .plat-btn { font-size: 10px; font-weight: 700; text-decoration: none; padding: 3px 9px; border-radius: 4px; color: #fff; }
+    .hidden { display: none; }
+
+    /* Right sidebar */
+    .link-sb { padding: 14px 16px; background: var(--off); }
+    .lsb-section { margin-bottom: 14px; }
+    .lsb-hd { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txl); margin-bottom: 6px; }
+    .lsb-lk { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 6px; text-decoration: none; margin-bottom: 1px; transition: background 0.1s; }
+    .lsb-lk:hover { background: #EDEBE8; }
+    .lsb-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .lsb-tx { font-size: 11px; color: var(--tx); font-weight: 500; flex: 1; }
+    .lsb-ar { font-size: 10px; color: var(--txl); }
+    .lsb-chip { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+
+    /* Footer */
+    .ftr { background: var(--pd); padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .fc { font-size: 10px; color: rgba(255,255,255,0.35); }
+    .flinks { display: flex; gap: 14px; }
+    .flinks a { font-size: 10px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .flinks a:hover { color: rgba(255,255,255,0.65); }
+
+    @media (max-width: 768px) {
+      body { padding: 0; }
+      .d { border-radius: 0; border: none; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .mid { grid-template-columns: 1fr; }
+      .pane { border-right: none; border-bottom: 0.5px solid var(--bdr); }
+      .bottom { grid-template-columns: 1fr; }
+      .link-sb { border-top: 0.5px solid var(--bdr); }
+      .tn-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="d">
+
+  <!-- Top Nav -->
+  <div class="topnav">
+    <div class="tn-logo">
+      <svg class="tn-logomark" viewBox="0 0 22 26" fill="none">
+        <rect width="22" height="26" rx="2" fill="#4A2C6B"/>
+        <rect x="2.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="12.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="2.5" y="10" width="17" height="6" rx="1" fill="#7AB558" opacity=".4"/>
+      </svg>
+      <div class="tn-brand">Mercy <em>College</em> of Health Sciences</div>
+    </div>
+    <div class="tn-links">
+      <a href="https://www.mchs.edu" class="tn-link active">Dashboard</a>
+      <a href="https://apply.mchs.edu/manage/" class="tn-link">Admissions</a>
+      <a href="https://analytics.google.com" class="tn-link">Analytics</a>
+      <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
+    </div>
+    <div class="tn-right">
+      <div class="tn-date" id="tn-date"></div>
+      <div class="tn-badge">Staff</div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="hero-greeting" id="hero-greeting">Good morning, Matt</div>
+      <div class="hero-title">Your Work Command Center</div>
+    </div>
+    <div class="hero-actions">
+      <a href="#" class="hbtn hbtn-g">Admissions Funnel →</a>
+      <a href="#" class="hbtn hbtn-o">Enrollment Forecast →</a>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-val placeholder">—</div>
+      <div class="metric-lbl">Total Enrollment</div>
+      <div class="metric-note">Pulls from Enrollment dashboard</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val placeholder">—</div>
+      <div class="metric-lbl">AY Total New Students</div>
+      <div class="metric-note">Pulls from Admissions Funnel</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val placeholder">—</div>
+      <div class="metric-lbl">Forecast Total Enrollment</div>
+      <div class="metric-note">Pulls from Enrollment Forecast</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val placeholder">—</div>
+      <div class="metric-lbl">Forecast New Enrollment</div>
+      <div class="metric-note">Pulls from Enrollment Forecast</div>
+    </div>
+  </div>
+
+  <!-- Tool Tiles -->
+  <div class="section">
+    <div class="section-hd">Tools &amp; Pages</div>
+    <div class="tiles">
+      <a href="https://apply.mchs.edu/manage/" class="tile">
+        <div class="tile-icon" style="background:#FCE8E0;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="#8B2A00" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="#8B2A00" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9l1.5 1.5 2.5-2" stroke="#8B2A00" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tile-name">Slate CRM</div>
+        <div class="tile-sub">Applicants &amp; pipeline</div>
+        <span class="tile-chip chip-crm">CRM</span>
+      </a>
+      <a href="https://www.mchs.edu/wp-login.php?redirect_to=https%3A%2F%2Fwww.mchs.edu%2Fwp-admin%2F&reauth=1" class="tile">
+        <div class="tile-icon" style="background:#E0EEF5;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="11" rx="2" stroke="#0D4F6E" stroke-width="1.5"/><path d="M4 6h8M4 9h5" stroke="#0D4F6E" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="9" r="1.5" fill="#21759B"/></svg>
+        </div>
+        <div class="tile-name">Website Admin</div>
+        <div class="tile-sub">WordPress dashboard</div>
+        <span class="tile-chip chip-wp">WordPress</span>
+      </a>
+      <a href="https://analytics.google.com" class="tile">
+        <div class="tile-icon" style="background:#E6F0FB;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="9" width="3" height="5" rx="1" fill="#0C447C"/><rect x="6.5" y="6" width="3" height="8" rx="1" fill="#0C447C"/><rect x="11" y="3" width="3" height="11" rx="1" fill="#0C447C"/></svg>
+        </div>
+        <div class="tile-name">Marketing Analytics</div>
+        <div class="tile-sub">GA4 &amp; campaigns</div>
+        <span class="tile-chip chip-live">GA4 ready</span>
+      </a>
+      <a href="https://www.mchs.edu/marketing" class="tile">
+        <div class="tile-icon" style="background:#F0EBF8;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="#4A2C6B" stroke-width="1.5"/><path d="M6 8h4M8 6v4" stroke="#4A2C6B" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tile-name">Brand Resources</div>
+        <div class="tile-sub">Visual identity guide</div>
+        <span class="tile-chip chip-brand">MCHS Brand</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Mid: Tasks + Events -->
+  <div class="mid">
+    <div class="pane">
+      <div class="pane-hd">
+        Today's Tasks
+        <span class="pane-badge ba" id="open-count">4 open</span>
+      </div>
+      <div class="tchk done" style="display:none"></div>
+      <div class="task-r"><div class="tchk done" onclick="toggleTask(this)"></div><div class="ttx done" onclick="toggleTask(this.previousElementSibling)">Review brand style guide</div></div>
+      <div class="task-r"><div class="tchk done" onclick="toggleTask(this)"></div><div class="ttx done" onclick="toggleTask(this.previousElementSibling)">Homepage dashboard v1 draft</div><div class="tch">Dev</div></div>
+      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Build admissions funnel tool</div><div class="tch">Dev</div></div>
+      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Finalize Spring 2026 flyer templates</div><div class="tch">Mktg</div></div>
+      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Connect GA4 to marketing dashboard</div><div class="tch">Analytics</div></div>
+      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Review commencement speaker content</div><div class="tch">Events</div></div>
+      <div class="task-foot">
+        <div class="tf-note">Click any task to toggle complete</div>
+        <a href="x-apple-reminderkit://" class="tf-lk">Open Reminders →</a>
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-hd">
+        Upcoming Events
+        <span class="pane-badge bp" id="ev-badge">Pulse Campus Calendar</span>
+      </div>
+      <div id="auth-err" class="auth-err">
+        <div class="ae-t">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#8B1A1A" stroke-width="1.5"/><path d="M8 5v3.5M8 10.5v.5" stroke="#8B1A1A" stroke-width="1.5" stroke-linecap="round"/></svg>
+          SharePoint authentication required
+        </div>
+        <div class="ae-b">Your Microsoft 365 session may have expired. Sign in to restore live event data.</div>
+        <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="ae-btn">Sign in to SharePoint →</a>
+      </div>
+      <div id="ev-feed">
+        <div class="ev-item"><div class="ev-box"><div class="ev-mo">Apr</div><div class="ev-dy">22</div></div><div><div class="ev-title">Campus Visit Day</div><div class="ev-meta">9:00 AM · Downtown Campus</div><span class="ev-chip ec-ad">Admissions</span></div></div>
+        <div class="ev-item"><div class="ev-box"><div class="ev-mo">Apr</div><div class="ev-dy">25</div></div><div><div class="ev-title">Campus Ministry Mass</div><div class="ev-meta">12:00 PM · Chapel</div><span class="ev-chip ec-fa">Ministry</span></div></div>
+        <div class="ev-item"><div class="ev-box"><div class="ev-mo">Apr</div><div class="ev-dy">28</div></div><div><div class="ev-title">Final Exams Begin</div><div class="ev-meta">All day · Spring 2026</div><span class="ev-chip ec-ac">Academic</span></div></div>
+        <div class="ev-item"><div class="ev-box"><div class="ev-mo">May</div><div class="ev-dy">3</div></div><div><div class="ev-title">Nursing Pinning Ceremony</div><div class="ev-meta">2:00 PM · Civic Center</div><span class="ev-chip ec-ev">Ceremony</span></div></div>
+        <div class="ev-item"><div class="ev-box"><div class="ev-mo">May</div><div class="ev-dy">9</div></div><div><div class="ev-title">Commencement — Class of 2026</div><div class="ev-meta">10:00 AM · Jennie Baranczyk</div><span class="ev-chip ec-ev">Commencement</span></div></div>
+      </div>
+      <div class="ev-foot">
+        <div class="ev-note" id="ev-note">Sample events · SharePoint login for live data</div>
+        <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="ev-cal">Full calendar →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: Social + Links -->
+  <div class="bottom">
+    <div class="social-pane">
+      <div class="pane-hd" style="margin-bottom:0;">
+        Social Media
+        <span class="pane-badge bb">API ready</span>
+      </div>
+      <div class="stabs">
+        <div class="stab act-li" id="tab-li" onclick="showTab('li')">
+          <svg style="width:10px;height:10px;vertical-align:middle;margin-right:3px;" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>LinkedIn
+        </div>
+        <div class="stab" id="tab-fb" onclick="showTab('fb')">
+          <svg style="width:10px;height:10px;vertical-align:middle;margin-right:3px;" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>Facebook
+        </div>
+        <div class="stab" id="tab-ig" onclick="showTab('ig')">
+          <svg style="width:10px;height:10px;vertical-align:middle;margin-right:3px;" viewBox="0 0 24 24" fill="#C13584"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>Instagram
+        </div>
+      </div>
+
+      <div id="feed-li">
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#F0EBF8;color:#4A2C6B;">MC</div><div><div class="post-name">Mercy College of Health Sciences</div><div class="post-time">2 hours ago</div></div></div>
+          <div class="post-body">Thrilled to announce Jennie Baranczyk as our 2026 Commencement Speaker! #MercyCollegeLife #MCgrad26</div>
+          <div class="post-stats"><div class="ps"><span>142</span> likes</div><div class="ps"><span>18</span> comments</div><div class="ps"><span>9</span> reposts</div></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#F0EBF8;color:#4A2C6B;">MC</div><div><div class="post-name">Mercy College of Health Sciences</div><div class="post-time">3 days ago</div></div></div>
+          <div class="post-body">Signing Day 2026 — 47 future healthcare heroes committed! #ChartYourCourse #MCSigningDay26</div>
+          <div class="post-stats"><div class="ps"><span>289</span> likes</div><div class="ps"><span>34</span> comments</div><div class="ps"><span>22</span> reposts</div></div>
+        </div>
+        <div class="plat-row"><div class="plat-lbl">2,400+ followers</div><a href="https://www.linkedin.com/school/mercy-college-of-health-sciences/" class="plat-btn" style="background:#0A66C2;">Open LinkedIn →</a></div>
+      </div>
+
+      <div class="hidden" id="feed-fb">
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#E6F0FB;color:#0C447C;">MC</div><div><div class="post-name">Mercy College Iowa</div><div class="post-time">1 day ago</div></div></div>
+          <div class="post-body">Join us for Campus Visit Day on April 22! Meet faculty and explore our downtown campus. #MercyCollegeLife</div>
+          <div class="post-stats"><div class="ps"><span>67</span> likes</div><div class="ps"><span>12</span> comments</div><div class="ps"><span>31</span> shares</div></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#E6F0FB;color:#0C447C;">MC</div><div><div class="post-name">Mercy College Iowa</div><div class="post-time">5 days ago</div></div></div>
+          <div class="post-body">Congrats to our Radiologic Technology students completing clinical rotations at UnityPoint Health!</div>
+          <div class="post-stats"><div class="ps"><span>113</span> likes</div><div class="ps"><span>19</span> comments</div><div class="ps"><span>8</span> shares</div></div>
+        </div>
+        <div class="plat-row"><div class="plat-lbl">3,800+ followers</div><a href="https://www.facebook.com/MercyCollegeIowa" class="plat-btn" style="background:#1877F2;">Open Facebook →</a></div>
+      </div>
+
+      <div class="hidden" id="feed-ig">
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#FCE8EF;color:#8B1050;">MC</div><div><div class="post-name">mercycollegeiowa</div><div class="post-time">6 hours ago</div></div></div>
+          <div class="post-body">Nothing beats Signing Day! 47 future Guardians on their way. Welcome to the Mercy family! #ChartingMyCourse</div>
+          <div class="post-stats"><div class="ps"><span>204</span> likes</div><div class="ps"><span>27</span> comments</div></div>
+        </div>
+        <div class="post">
+          <div class="post-head"><div class="post-ava" style="background:#FCE8EF;color:#8B1050;">MC</div><div><div class="post-name">mercycollegeiowa</div><div class="post-time">2 days ago</div></div></div>
+          <div class="post-body">Meet Justin Putzier — volunteer, mentor, inspiration to our future nurses. #NursingEducation</div>
+          <div class="post-stats"><div class="ps"><span>178</span> likes</div><div class="ps"><span>14</span> comments</div></div>
+        </div>
+        <div class="plat-row"><div class="plat-lbl">@mercycollegeiowa · 1,900+</div><a href="https://www.instagram.com/mercycollegeiowa/" class="plat-btn" style="background:#C13584;">Open Instagram →</a></div>
+      </div>
+    </div>
+
+    <div class="link-sb">
+      <div class="lsb-section">
+        <div class="lsb-hd">Quick Nav</div>
+        <a href="https://www.mchs.edu" class="lsb-lk"><div class="lsb-dot" style="background:#4A2C6B"></div><div class="lsb-tx">MCHS Homepage</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.mchs.edu/staff" class="lsb-lk"><div class="lsb-dot" style="background:#5A8C3C"></div><div class="lsb-tx">Staff Portal</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.mchs.edu/students" class="lsb-lk"><div class="lsb-dot" style="background:#C8A84B"></div><div class="lsb-tx">Student Portal</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.mchs.edu/admissions/lets-get-started/" class="lsb-lk"><div class="lsb-dot" style="background:#999"></div><div class="lsb-tx">Admissions</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.mchs.edu/about/campus-map/" class="lsb-lk"><div class="lsb-dot" style="background:#999"></div><div class="lsb-tx">Campus Map</div><div class="lsb-ar">→</div></a>
+      </div>
+      <div class="lsb-section">
+        <div class="lsb-hd">CRM &amp; Admin</div>
+        <a href="https://apply.mchs.edu/manage/" class="lsb-lk"><div class="lsb-dot" style="background:#E8500A"></div><div class="lsb-tx">Slate CRM</div><span class="lsb-chip" style="background:#FCE8E0;color:#8B2A00;">CRM</span></a>
+        <a href="https://www.mchs.edu/wp-login.php?redirect_to=https%3A%2F%2Fwww.mchs.edu%2Fwp-admin%2F&reauth=1" class="lsb-lk"><div class="lsb-dot" style="background:#21759B"></div><div class="lsb-tx">Website Admin</div><span class="lsb-chip" style="background:#E0EEF5;color:#0D4F6E;">WP</span></a>
+        <a href="https://mercycollege.sharepoint.com" class="lsb-lk"><div class="lsb-dot" style="background:#0078D4"></div><div class="lsb-tx">SharePoint</div><div class="lsb-ar">→</div></a>
+        <a href="https://outlook.office.com" class="lsb-lk"><div class="lsb-dot" style="background:#0078D4"></div><div class="lsb-tx">Outlook</div><div class="lsb-ar">→</div></a>
+      </div>
+      <div class="lsb-section">
+        <div class="lsb-hd">Social &amp; Analytics</div>
+        <a href="https://www.linkedin.com/school/mercy-college-of-health-sciences/" class="lsb-lk"><div class="lsb-dot" style="background:#0A66C2"></div><div class="lsb-tx">LinkedIn</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.instagram.com/mercycollegeiowa/" class="lsb-lk"><div class="lsb-dot" style="background:#C13584"></div><div class="lsb-tx">Instagram</div><div class="lsb-ar">→</div></a>
+        <a href="https://www.facebook.com/MercyCollegeIowa" class="lsb-lk"><div class="lsb-dot" style="background:#1877F2"></div><div class="lsb-tx">Facebook</div><div class="lsb-ar">→</div></a>
+        <a href="https://analytics.google.com" class="lsb-lk"><div class="lsb-dot" style="background:#E8710A"></div><div class="lsb-tx">Google Analytics</div><div class="lsb-ar">→</div></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">
+    <div class="fc">© 2026 Mercy College of Health Sciences · 928 6th Ave, Des Moines, IA 50309</div>
+    <div class="flinks">
+      <a href="https://www.mchs.edu/privacy-terms">Privacy</a>
+      <a href="https://www.mchs.edu/about/accreditation/">Accreditation</a>
+      <a href="https://apply.mchs.edu/manage/">Slate CRM</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Date & greeting
+  const now = new Date();
+  const dateEl = document.getElementById('tn-date');
+  if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  const greetEl = document.getElementById('hero-greeting');
+  if (greetEl) {
+    const h = now.getHours();
+    const period = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    greetEl.textContent = period + ', Matt';
+  }
+
+  // SharePoint calendar
+  async function tryLoadCalendar() {
+    const url = "https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/_api/web/lists/getbytitle('Events')/items?$orderby=EventDate&$top=5&$select=Title,EventDate,Location";
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json;odata=verbose' }, credentials: 'include' });
+      if (res.status === 401 || res.status === 403) { showAuthErr(); return; }
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = data?.d?.results;
+      if (items && items.length > 0) renderEvents(items);
+    } catch (e) {}
+  }
+
+  function showAuthErr() {
+    document.getElementById('auth-err').style.display = 'block';
+    document.getElementById('ev-feed').style.display = 'none';
+    const b = document.getElementById('ev-badge');
+    b.textContent = 'Auth required'; b.className = 'pane-badge br';
+  }
+
+  function renderEvents(items) {
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const feed = document.getElementById('ev-feed');
+    feed.innerHTML = items.map(item => {
+      const dt = new Date(item.EventDate);
+      const time = dt.getHours() === 0 ? 'All day' : dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const loc = item.Location ? ' · ' + item.Location : '';
+      return `<div class="ev-item"><div class="ev-box"><div class="ev-mo">${mo[dt.getMonth()]}</div><div class="ev-dy">${dt.getDate()}</div></div><div><div class="ev-title">${item.Title}</div><div class="ev-meta">${time}${loc}</div><span class="ev-chip ec-ev">Event</span></div></div>`;
+    }).join('');
+    document.getElementById('ev-note').textContent = 'Live from Pulse Campus Calendar';
+    const b = document.getElementById('ev-badge');
+    b.textContent = 'Live'; b.className = 'pane-badge bg';
+  }
+
+  tryLoadCalendar();
+
+  // Social tabs
+  function showTab(p) {
+    ['li', 'fb', 'ig'].forEach(x => {
+      const f = document.getElementById('feed-' + x); if (f) f.classList.add('hidden');
+      const t = document.getElementById('tab-' + x); if (t) t.className = 'stab';
+    });
+    document.getElementById('feed-' + p).classList.remove('hidden');
+    document.getElementById('tab-' + p).classList.add('act-' + p);
+  }
+
+  // Tasks
+  function toggleTask(chk) {
+    chk.classList.toggle('done');
+    const tx = chk.closest('.task-r').querySelector('.ttx');
+    if (tx) tx.classList.toggle('done');
+    updateCount();
+  }
+
+  function updateCount() {
+    const open = document.querySelectorAll('.tchk:not(.done)').length;
+    const el = document.getElementById('open-count');
+    if (el) { el.textContent = open + ' open'; el.className = 'pane-badge ' + (open > 0 ? 'ba' : 'bg'); }
+  }
+</script>
+</body>
+</html>
