@@ -144,7 +144,15 @@
     .ttx { font-size: 12px; color: var(--tx); flex: 1; cursor: pointer; line-height: 1.3; }
     .ttx.done { text-decoration: line-through; color: var(--txl); }
     .tch { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; background: var(--pl); color: var(--p); }
-    .task-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+    .task-del { width: 16px; height: 16px; border-radius: 50%; border: none; background: transparent; color: var(--txl); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; padding: 0; }
+    .task-del:hover { background: #FDECEA; color: #8B1A1A; }
+    .task-add-row { display: flex; gap: 6px; padding: 8px 0 2px; border-top: 0.5px solid var(--bdr); margin-top: 2px; }
+    .task-input { flex: 1; font-size: 12px; font-family: var(--sans); border: 0.5px solid var(--bdr); border-radius: 5px; padding: 5px 9px; color: var(--tx); background: var(--off); outline: none; }
+    .task-input:focus { border-color: var(--p); background: var(--w); }
+    .task-input::placeholder { color: var(--txl); }
+    .task-add-btn { font-size: 11px; font-weight: 700; background: var(--p); color: #fff; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer; white-space: nowrap; font-family: var(--sans); }
+    .task-add-btn:hover { opacity: 0.88; }
+    .task-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 6px; }
     .tf-note { font-size: 10px; color: var(--txl); }
     .tf-lk { font-size: 10px; font-weight: 700; color: var(--p); text-decoration: none; }
 
@@ -337,15 +345,13 @@
         Today's Tasks
         <span class="pane-badge ba" id="open-count">4 open</span>
       </div>
-      <div class="tchk done" style="display:none"></div>
-      <div class="task-r"><div class="tchk done" onclick="toggleTask(this)"></div><div class="ttx done" onclick="toggleTask(this.previousElementSibling)">Review brand style guide</div></div>
-      <div class="task-r"><div class="tchk done" onclick="toggleTask(this)"></div><div class="ttx done" onclick="toggleTask(this.previousElementSibling)">Homepage dashboard v1 draft</div><div class="tch">Dev</div></div>
-      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Build admissions funnel tool</div><div class="tch">Dev</div></div>
-      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Finalize Spring 2026 flyer templates</div><div class="tch">Mktg</div></div>
-      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Connect GA4 to marketing dashboard</div><div class="tch">Analytics</div></div>
-      <div class="task-r"><div class="tchk" onclick="toggleTask(this)"></div><div class="ttx" onclick="toggleTask(this.previousElementSibling)">Review commencement speaker content</div><div class="tch">Events</div></div>
+      <div id="task-list"></div>
+      <div class="task-add-row">
+        <input class="task-input" id="task-input" type="text" placeholder="Add a task and press Enter..." maxlength="120" />
+        <button class="task-add-btn" onclick="addTask()">+ Add</button>
+      </div>
       <div class="task-foot">
-        <div class="tf-note">Click any task to toggle complete</div>
+        <div class="tf-note" id="tf-note">Tasks saved in your browser</div>
         <a href="x-apple-reminderkit://" class="tf-lk">Open Reminders →</a>
       </div>
     </div>
@@ -492,7 +498,8 @@
 
   // SharePoint calendar
   async function tryLoadCalendar() {
-    const url = "https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/_api/web/lists/getbytitle('Events')/items?$orderby=EventDate&$top=5&$select=Title,EventDate,Location";
+    const today = new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+    const url = `https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/_api/web/lists(guid'ef70d658-1933-4819-9c48-5275b870a5e1')/items?$orderby=EventDate&$filter=EventDate ge datetime'${today}'&$top=8&$select=Title,EventDate,EndDate,Location,Category`;
     try {
       const res = await fetch(url, { headers: { 'Accept': 'application/json;odata=verbose' }, credentials: 'include' });
       if (res.status === 401 || res.status === 403) { showAuthErr(); return; }
@@ -513,11 +520,19 @@
   function renderEvents(items) {
     const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const feed = document.getElementById('ev-feed');
+    const chipMap = {
+      'Academic': 'ec-ac', 'Admissions': 'ec-ad', 'Campus Visit': 'ec-ad',
+      'Campus Ministry': 'ec-fa', 'Holiday/Closure': 'ec-fa',
+      'Event': 'ec-ev', 'Social Committee': 'ec-ev', 'Board': 'ec-ev',
+      'Human Resources': 'ec-ac', 'Meeting': 'ec-ac', 'Student Success': 'ec-ev'
+    };
     feed.innerHTML = items.map(item => {
       const dt = new Date(item.EventDate);
       const time = dt.getHours() === 0 ? 'All day' : dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const loc = item.Location ? ' · ' + item.Location : '';
-      return `<div class="ev-item"><div class="ev-box"><div class="ev-mo">${mo[dt.getMonth()]}</div><div class="ev-dy">${dt.getDate()}</div></div><div><div class="ev-title">${item.Title}</div><div class="ev-meta">${time}${loc}</div><span class="ev-chip ec-ev">Event</span></div></div>`;
+      const cat = item.Category || 'Event';
+      const chipClass = chipMap[cat] || 'ec-ev';
+      return `<div class="ev-item"><div class="ev-box"><div class="ev-mo">${mo[dt.getMonth()]}</div><div class="ev-dy">${dt.getDate()}</div></div><div><div class="ev-title">${item.Title}</div><div class="ev-meta">${time}${loc}</div><span class="ev-chip ${chipClass}">${cat}</span></div></div>`;
     }).join('');
     document.getElementById('ev-note').textContent = 'Live from Pulse Campus Calendar';
     const b = document.getElementById('ev-badge');
@@ -536,16 +551,79 @@
     document.getElementById('tab-' + p).classList.add('act-' + p);
   }
 
-  // Tasks
-  function toggleTask(chk) {
-    chk.classList.toggle('done');
-    const tx = chk.closest('.task-r').querySelector('.ttx');
-    if (tx) tx.classList.toggle('done');
-    updateCount();
+  // ── Task system with localStorage persistence ──
+  const DEFAULT_TASKS = [
+    { text: 'Review brand style guide', done: true, tag: '' },
+    { text: 'Homepage dashboard v1 draft', done: true, tag: 'Dev' },
+    { text: 'Build admissions funnel tool', done: false, tag: 'Dev' },
+    { text: 'Finalize Spring 2026 flyer templates', done: false, tag: 'Mktg' },
+    { text: 'Connect GA4 to marketing dashboard', done: false, tag: 'Analytics' },
+    { text: 'Review commencement speaker content', done: false, tag: 'Events' }
+  ];
+
+  function loadTasks() {
+    try {
+      const saved = localStorage.getItem('mercyu-tasks');
+      return saved ? JSON.parse(saved) : DEFAULT_TASKS;
+    } catch(e) { return DEFAULT_TASKS; }
   }
 
-  function updateCount() {
-    const open = document.querySelectorAll('.tchk:not(.done)').length;
+  function saveTasks(tasks) {
+    try { localStorage.setItem('mercyu-tasks', JSON.stringify(tasks)); } catch(e) {}
+  }
+
+  function renderTasks() {
+    const tasks = loadTasks();
+    const list = document.getElementById('task-list');
+    if (!list) return;
+    list.innerHTML = tasks.map((t, i) => `
+      <div class="task-r">
+        <div class="tchk${t.done ? ' done' : ''}" onclick="toggleTask(${i})"></div>
+        <div class="ttx${t.done ? ' done' : ''}" onclick="toggleTask(${i})">${escHtml(t.text)}</div>
+        ${t.tag ? `<div class="tch">${escHtml(t.tag)}</div>` : ''}
+        <button class="task-del" onclick="deleteTask(${i})" title="Delete task">&#215;</button>
+      </div>`).join('');
+    updateCount(tasks);
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function toggleTask(i) {
+    const tasks = loadTasks();
+    tasks[i].done = !tasks[i].done;
+    saveTasks(tasks);
+    renderTasks();
+  }
+
+  function deleteTask(i) {
+    const tasks = loadTasks();
+    tasks.splice(i, 1);
+    saveTasks(tasks);
+    renderTasks();
+  }
+
+  function addTask() {
+    const input = document.getElementById('task-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const tasks = loadTasks();
+    tasks.push({ text, done: false, tag: '' });
+    saveTasks(tasks);
+    input.value = '';
+    renderTasks();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderTasks();
+    const input = document.getElementById('task-input');
+    if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+  });
+
+  function updateCount(tasks) {
+    const t = tasks || loadTasks();
+    const open = t.filter(x => !x.done).length;
     const el = document.getElementById('open-count');
     if (el) { el.textContent = open + ' open'; el.className = 'pane-badge ' + (open > 0 ? 'ba' : 'bg'); }
   }
