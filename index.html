@@ -108,7 +108,7 @@
     /* ── Tool Tiles ── */
     .section { padding: 14px 20px; }
     .section-hd { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txl); margin-bottom: 10px; }
-    .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
     .tile {
       background: var(--w); border: 0.5px solid var(--bdr); border-radius: 9px;
       padding: 12px; text-decoration: none; display: block; cursor: pointer;
@@ -123,6 +123,8 @@
     .chip-wp { background: #E0EEF5; color: #0D4F6E; }
     .chip-live { background: #E6F0FB; color: #0C447C; }
     .chip-brand { background: var(--pl); color: var(--p); }
+    .chip-funnel { background: #EAF4E0; color: #2E5E18; }
+    .chip-forecast { background: #FEF4E0; color: #7A4A00; }
 
     /* ── Mid Row ── */
     .mid { display: grid; grid-template-columns: 1fr 1fr; border-top: 0.5px solid var(--bdr); border-bottom: 0.5px solid var(--bdr); }
@@ -228,7 +230,7 @@
       body { padding: 0; }
       .d { border-radius: 0; border: none; }
       .metrics { grid-template-columns: repeat(2, 1fr); }
-      .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .mid { grid-template-columns: 1fr; }
       .pane { border-right: none; border-bottom: 0.5px solid var(--bdr); }
       .bottom { grid-template-columns: 1fr; }
@@ -253,7 +255,8 @@
     </div>
     <div class="tn-links">
       <a href="https://www.mchs.edu" class="tn-link active">Dashboard</a>
-      <a href="https://apply.mchs.edu/manage/" class="tn-link">Admissions</a>
+      <a href="admissions-funnel.html" class="tn-link">Admissions Funnel</a>
+      <a href="student-forecast.html" class="tn-link">Enrollment Forecast</a>
       <a href="https://analytics.google.com" class="tn-link">Analytics</a>
       <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
     </div>
@@ -270,32 +273,32 @@
       <div class="hero-title">Your Work Command Center</div>
     </div>
     <div class="hero-actions">
-      <a href="#" class="hbtn hbtn-g">Admissions Funnel →</a>
-      <a href="#" class="hbtn hbtn-o">Enrollment Forecast →</a>
+      <a href="admissions-funnel.html" class="hbtn hbtn-g">Admissions Funnel →</a>
+      <a href="student-forecast.html" class="hbtn hbtn-o">Enrollment Forecast →</a>
     </div>
   </div>
 
   <!-- Metrics -->
   <div class="metrics">
     <div class="metric">
-      <div class="metric-val placeholder">—</div>
+      <div class="metric-val placeholder" id="m-total-enr">—</div>
       <div class="metric-lbl">Total Enrollment</div>
       <div class="metric-note">Pulls from Enrollment dashboard</div>
     </div>
     <div class="metric">
-      <div class="metric-val placeholder">—</div>
+      <div class="metric-val" id="m-new-students" style="font-size:22px;">—</div>
       <div class="metric-lbl">AY Total New Students</div>
-      <div class="metric-note">Pulls from Admissions Funnel</div>
+      <div class="metric-note" id="m-new-students-note">Pulls from Admissions Funnel</div>
     </div>
     <div class="metric">
-      <div class="metric-val placeholder">—</div>
+      <div class="metric-val placeholder" id="m-forecast-total">—</div>
       <div class="metric-lbl">Forecast Total Enrollment</div>
       <div class="metric-note">Pulls from Enrollment Forecast</div>
     </div>
     <div class="metric">
-      <div class="metric-val placeholder">—</div>
+      <div class="metric-val placeholder" id="m-forecast-new" style="font-size:16px;line-height:1.35;">—</div>
       <div class="metric-lbl">Forecast New Enrollment</div>
-      <div class="metric-note">Pulls from Enrollment Forecast</div>
+      <div class="metric-note" id="m-forecast-new-note">Pulls from Enrollment Forecast</div>
     </div>
   </div>
 
@@ -303,6 +306,22 @@
   <div class="section">
     <div class="section-hd">Tools &amp; Pages</div>
     <div class="tiles">
+      <a href="admissions-funnel.html" class="tile">
+        <div class="tile-icon" style="background:#EAF4E0;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 9l3 3 5-6" stroke="#2E5E18" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="9" r="1" fill="#2E5E18"/><circle cx="9" cy="12" r="1" fill="#2E5E18"/></svg>
+        </div>
+        <div class="tile-name">Admissions Funnel</div>
+        <div class="tile-sub">Inquiry → Enrolled</div>
+        <span class="tile-chip chip-funnel">Live Data</span>
+      </a>
+      <a href="student-forecast.html" class="tile">
+        <div class="tile-icon" style="background:#FEF4E0;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 11l3-4 3 2 3-5 3 2" stroke="#7A4A00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 4l2 0 0 2" stroke="#7A4A00" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tile-name">New Student Forecast</div>
+        <div class="tile-sub">Trend-based projection</div>
+        <span class="tile-chip chip-forecast">Forecast</span>
+      </a>
       <a href="https://apply.mchs.edu/manage/" class="tile">
         <div class="tile-icon" style="background:#FCE8E0;">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="#8B2A00" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="#8B2A00" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9l1.5 1.5 2.5-2" stroke="#8B2A00" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -447,6 +466,19 @@
 
     <div class="link-sb">
       <div class="lsb-section">
+        <div class="lsb-hd">Dashboards</div>
+        <a href="admissions-funnel.html" class="lsb-lk">
+          <div class="lsb-dot" style="background:var(--g)"></div>
+          <div class="lsb-tx">Admissions Funnel</div>
+          <span class="lsb-chip" style="background:#EAF4E0;color:#2E5E18;">Live</span>
+        </a>
+        <a href="student-forecast.html" class="lsb-lk">
+          <div class="lsb-dot" style="background:var(--gold)"></div>
+          <div class="lsb-tx">Enrollment Forecast</div>
+          <span class="lsb-chip" style="background:#FEF4E0;color:#7A4A00;">Forecast</span>
+        </a>
+      </div>
+      <div class="lsb-section">
         <div class="lsb-hd">Quick Nav</div>
         <a href="https://www.mchs.edu" class="lsb-lk"><div class="lsb-dot" style="background:#4A2C6B"></div><div class="lsb-tx">MCHS Homepage</div><div class="lsb-ar">→</div></a>
         <a href="https://www.mchs.edu/staff" class="lsb-lk"><div class="lsb-dot" style="background:#5A8C3C"></div><div class="lsb-tx">Staff Portal</div><div class="lsb-ar">→</div></a>
@@ -484,7 +516,113 @@
 </div>
 
 <script>
-  // Date & greeting
+  // ── Live KPI data from Supabase ──────────────────────────────────────────
+  const SB_URL = 'https://zeidgpqiczdwnuupnozm.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWRncHFpY3pkd251dXBub3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjU5NzIsImV4cCI6MjA5MjAwMTk3Mn0.VKRADdN5pdLAbYOS099e1yVdAkh2RY2tUo00119lciM';
+  const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+  const fmt = n => n != null ? Math.round(n).toLocaleString() : '—';
+
+  // Seed census data (mirrors student-forecast.html) — used for forecast range
+  // when Supabase is offline
+  const SEED = [
+    { academic_year:'AY17-18', term:'Fall',   enrolled:259, admissions:543,  confirmed:294 },
+    { academic_year:'AY18-19', term:'Fall',   enrolled:325, admissions:708,  confirmed:387 },
+    { academic_year:'AY19-20', term:'Fall',   enrolled:284, admissions:629,  confirmed:344 },
+    { academic_year:'AY20-21', term:'Fall',   enrolled:309, admissions:656,  confirmed:346 },
+    { academic_year:'AY21-22', term:'Fall',   enrolled:294, admissions:604,  confirmed:361 },
+    { academic_year:'AY22-23', term:'Fall',   enrolled:292, admissions:624,  confirmed:333 },
+    { academic_year:'AY23-24', term:'Fall',   enrolled:376, admissions:856,  confirmed:458 },
+    { academic_year:'AY16-17', term:'Spring', enrolled:93,  admissions:158,  confirmed:106 },
+    { academic_year:'AY17-18', term:'Spring', enrolled:66,  admissions:143,  confirmed:77  },
+    { academic_year:'AY18-19', term:'Spring', enrolled:110, admissions:214,  confirmed:124 },
+    { academic_year:'AY19-20', term:'Spring', enrolled:128, admissions:287,  confirmed:153 },
+    { academic_year:'AY20-21', term:'Spring', enrolled:151, admissions:336,  confirmed:186 },
+    { academic_year:'AY21-22', term:'Spring', enrolled:113, admissions:283,  confirmed:140 },
+    { academic_year:'AY22-23', term:'Spring', enrolled:128, admissions:287,  confirmed:153 },
+    { academic_year:'AY23-24', term:'Spring', enrolled:128, admissions:263,  confirmed:149 },
+    { academic_year:'AY24-25', term:'Spring', enrolled:159, admissions:354,  confirmed:190 },
+    { academic_year:'AY20-21', term:'Summer', enrolled:108, admissions:272,  confirmed:130 },
+    { academic_year:'AY21-22', term:'Summer', enrolled:77,  admissions:232,  confirmed:103 },
+    { academic_year:'AY22-23', term:'Summer', enrolled:99,  admissions:248,  confirmed:130 },
+    { academic_year:'AY23-24', term:'Summer', enrolled:164, admissions:426,  confirmed:193 },
+  ];
+
+  function calcEnrolledRange(censusRows, windowYears) {
+    // Get 3-year window rows (most recent N years)
+    const sorted = [...censusRows].sort((a,b) => a.academic_year > b.academic_year ? 1 : -1);
+    const window = windowYears >= 99 ? sorted : sorted.slice(-windowYears);
+    const confRates = window.map(r => r.confirmed && r.enrolled ? r.enrolled / r.confirmed : null).filter(Boolean);
+    const admRates  = window.map(r => r.admissions && r.enrolled ? r.enrolled / r.admissions : null).filter(Boolean);
+    if (!confRates.length) return null;
+    const avgConf = confRates.reduce((a,b)=>a+b,0) / confRates.length;
+    const minConf = Math.min(...confRates);
+    const avgAdm  = admRates.length ? admRates.reduce((a,b)=>a+b,0) / admRates.length : null;
+    // Use avg census as proxy for "forecasted confirmed/admitted" when no live input
+    const avgFcConf = window.map(r=>r.confirmed).filter(Boolean).reduce((a,b)=>a+b,0) / (window.filter(r=>r.confirmed).length || 1);
+    const avgFcAdm  = window.map(r=>r.admissions).filter(Boolean).reduce((a,b)=>a+b,0) / (window.filter(r=>r.admissions).length || 1);
+    return {
+      low:  Math.round(avgFcConf * minConf),
+      mid:  Math.round(avgFcConf * avgConf),
+      high: avgAdm ? Math.round(avgFcAdm * avgAdm) : null,
+      confRate: (avgConf * 100).toFixed(1) + '%',
+      admRate:  avgAdm ? (avgAdm * 100).toFixed(1) + '%' : '—',
+    };
+  }
+
+  async function loadKPIs() {
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: SB_HDR });
+      const rows = res.ok ? await res.json() : [];
+      const census = rows.length ? rows : SEED;
+
+      // AY Total New Students — sum enrolled across all terms for most recent AY
+      const latestAY = census.map(r => r.academic_year).sort().pop();
+      const latestRows = census.filter(r => r.academic_year === latestAY);
+      const totalNew = latestRows.reduce((sum, r) => sum + (r.enrolled || 0), 0);
+
+      const elNew = document.getElementById('m-new-students');
+      const elNewNote = document.getElementById('m-new-students-note');
+      if (totalNew > 0) {
+        elNew.textContent = fmt(totalNew);
+        elNew.classList.remove('placeholder');
+        elNew.style.color = 'var(--p)';
+        elNewNote.textContent = latestAY + ' · ' + latestRows.length + ' term' + (latestRows.length !== 1 ? 's' : '');
+      }
+
+      // Forecast New Enrollment range — 3-yr rolling avg, all terms combined
+      // Compute range per term, then sum for AY total range
+      const terms = ['Fall', 'Spring', 'Summer'];
+      let totalLow = 0, totalMid = 0, totalHigh = 0;
+      let hasRange = false;
+      terms.forEach(term => {
+        const termRows = census.filter(r => r.term === term);
+        if (!termRows.length) return;
+        const range = calcEnrolledRange(termRows, 3);
+        if (range) {
+          totalLow  += range.low  || 0;
+          totalMid  += range.mid  || 0;
+          totalHigh += range.high || 0;
+          hasRange = true;
+        }
+      });
+
+      const elFc = document.getElementById('m-forecast-new');
+      const elFcNote = document.getElementById('m-forecast-new-note');
+      if (hasRange) {
+        elFc.innerHTML =
+          `<span style="font-size:11px;color:var(--txl);font-weight:400;">low </span>${fmt(totalLow)}<br>` +
+          `<span style="font-size:11px;color:var(--txl);font-weight:400;">mid </span>${fmt(totalMid)}<br>` +
+          `<span style="font-size:11px;color:var(--txl);font-weight:400;">high </span>${fmt(totalHigh)}`;
+        elFc.classList.remove('placeholder');
+        elFc.style.color = 'var(--gd)';
+        elFcNote.textContent = '3-yr avg · Conf→Enr + Adm→Enr rates';
+      }
+    } catch(e) {
+      console.warn('KPI fetch error:', e);
+    }
+  }
+
+  loadKPIs();
   const now = new Date();
   const dateEl = document.getElementById('tn-date');
   if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });

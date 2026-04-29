@@ -146,6 +146,7 @@
       </div>
     </div>
     <div class="hdr-r">
+      <a href="student-forecast.html" class="btn btn-export" style="text-decoration:none;">Enrollment Forecast →</a>
       <button class="btn btn-export" onclick="exportCSV()">Export CSV</button>
       <button class="btn btn-add" onclick="openModal()">+ Enter Data</button>
     </div>
@@ -233,7 +234,10 @@
 
   <div class="footer-bar">
     <div class="footer-tx" id="footer-tx">Source: Supabase · enrollment_funnel_ay + enrollment_funnel_term</div>
-    <a href="https://apply.mchs.edu/manage/" class="footer-link">Open Slate CRM →</a>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <a href="student-forecast.html" class="footer-link">Enrollment Forecast →</a>
+      <a href="https://apply.mchs.edu/manage/" class="footer-link">Open Slate CRM →</a>
+    </div>
   </div>
 
 </div>
