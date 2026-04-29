@@ -108,7 +108,7 @@
     /* ── Tool Tiles ── */
     .section { padding: 14px 20px; }
     .section-hd { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txl); margin-bottom: 10px; }
-    .tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,(0, 1fr)); gap: 8px; }
     .tile {
       background: var(--w); border: 0.5px solid var(--bdr); border-radius: 9px;
       padding: 12px; text-decoration: none; display: block; cursor: pointer;
@@ -256,7 +256,8 @@
     <div class="tn-links">
       <a href="https://www.mchs.edu" class="tn-link active">Dashboard</a>
       <a href="admissions-funnel.html" class="tn-link">Admissions Funnel</a>
-      <a href="student-forecast.html" class="tn-link">Enrollment Forecast</a>
+      <a href="student-forecast.html" class="tn-link">New Student Forecast</a>
+      <a href="enrollment-forecast.html" class="tn-link">Total Enrollment Forecast</a>
       <a href="https://analytics.google.com" class="tn-link">Analytics</a>
       <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
     </div>
@@ -313,6 +314,14 @@
         <div class="tile-name">Admissions Funnel</div>
         <div class="tile-sub">Inquiry → Enrolled</div>
         <span class="tile-chip chip-funnel">Live Data</span>
+      </a>
+      <a href="enrollment-forecast.html" class="tile">
+        <div class="tile-icon" style="background:var(--pl);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#4A2C6B" stroke-width="1.5"/><path d="M5 10l2-3 2 2 2-4" stroke="#4A2C6B" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tile-name">Total Enrollment Forecast</div>
+        <div class="tile-sub">Reconciliation &amp; projection</div>
+        <span class="tile-chip chip-brand">Enrollment</span>
       </a>
       <a href="student-forecast.html" class="tile">
         <div class="tile-icon" style="background:#FEF4E0;">
@@ -471,6 +480,11 @@
           <div class="lsb-dot" style="background:var(--g)"></div>
           <div class="lsb-tx">Admissions Funnel</div>
           <span class="lsb-chip" style="background:#EAF4E0;color:#2E5E18;">Live</span>
+        </a>
+        <a href="enrollment-forecast.html" class="lsb-lk">
+          <div class="lsb-dot" style="background:var(--pm)"></div>
+          <div class="lsb-tx">Total Enrollment Forecast</div>
+          <span class="lsb-chip" style="background:var(--pl);color:var(--p);">Forecast</span>
         </a>
         <a href="student-forecast.html" class="lsb-lk">
           <div class="lsb-dot" style="background:var(--gold)"></div>

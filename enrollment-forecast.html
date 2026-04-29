@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MercyU — Enrollment Forecast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --p:#4A2C6B;--pd:#2E1A42;--pm:#5D3880;--pl:#F0EBF8;
+      --g:#5A8C3C;--gd:#3A5C26;--gl:#7AB558;
+      --gold:#C8A84B;--w:#fff;--off:#F7F5F2;--bdr:#E8E4DF;
+      --tx:#1A1A1A;--txm:#666;--txl:#999;
+      --fall:#185FA5;--spring:#5A8C3C;--summer:#BA7517;
+      --serif:'Libre Baskerville',Georgia,serif;
+      --sans:'Source Sans 3',Arial,sans-serif;
+      --up:#27500A;--dn:#791F1F;
+      --fav-bg:#E8F5E0;--unfav-bg:#FDECEA;
+    }
+    body{font-family:var(--sans);background:#EDEAE6;min-height:100vh;padding:20px 16px;}
+    .page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;background:var(--w);border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);box-shadow:0 2px 16px rgba(0,0,0,.08);}
+
+    /* ── Header ── */
+    .hdr{background:var(--pd);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+    .hdr-l{display:flex;align-items:center;gap:12px;}
+    .back-btn{color:rgba(255,255,255,.6);text-decoration:none;font-size:11px;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);}
+    .back-btn:hover{background:rgba(255,255,255,.1);}
+    .hdr-title{font-size:15px;font-weight:500;color:#fff;}
+    .hdr-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;}
+    .hdr-r{display:flex;align-items:center;gap:8px;}
+    .btn{font-size:11px;font-weight:600;padding:6px 14px;border-radius:5px;border:none;cursor:pointer;letter-spacing:.03em;text-decoration:none;display:inline-flex;align-items:center;}
+    .btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);}
+    .btn-ghost:hover{background:rgba(255,255,255,.25);}
+    .btn-green{background:var(--g);color:#fff;}
+    .btn-green:hover{opacity:.9;}
+
+    /* ── Filter bar ── */
+    .filter-bar{background:var(--off);border-bottom:.5px solid var(--bdr);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .filter-group{display:flex;align-items:center;gap:6px;}
+    .filter-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--txl);}
+    .seg-btn{font-size:11px;font-weight:500;padding:4px 11px;border-radius:5px;border:.5px solid var(--bdr);color:var(--txm);background:var(--w);cursor:pointer;transition:all .15s;}
+    .seg-btn:hover{border-color:var(--p);color:var(--p);}
+    .seg-btn.active-ay{background:var(--pd);border-color:var(--pd);color:#fff;}
+    .divider{width:1px;height:20px;background:var(--bdr);}
+    .view-pill{margin-left:auto;font-size:10px;color:var(--txm);background:var(--w);border:.5px solid var(--bdr);padding:3px 10px;border-radius:4px;}
+
+    /* ── Status bar ── */
+    .status-bar{padding:6px 20px;background:#fff;border-bottom:.5px solid var(--bdr);font-size:10px;color:var(--txl);display:flex;align-items:center;gap:8px;}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:#ccc;}
+    .status-dot.live{background:#3A6D11;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+    /* ── AY Summary KPI strip ── */
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:.5px solid var(--bdr);}
+    .metric{padding:12px 16px;border-right:.5px solid var(--bdr);}
+    .metric:last-child{border-right:none;}
+    .metric-lbl{font-size:10px;color:var(--txl);margin-bottom:3px;}
+    .metric-val{font-size:22px;font-weight:500;color:var(--p);line-height:1;}
+    .metric-delta{font-size:10px;margin-top:3px;}
+    .up{color:var(--up);} .dn{color:var(--dn);} .nt{color:var(--txl);}
+
+    /* ── Section header ── */
+    .section-hd{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--txl);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .section-hd-note{font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;}
+
+    /* ── Term toggle pill ── */
+    .term-pill{display:inline-flex;border:.5px solid var(--bdr);border-radius:6px;overflow:hidden;background:var(--w);}
+    .term-pill button{font-size:10px;font-weight:600;padding:3px 10px;border:none;background:transparent;cursor:pointer;color:var(--txm);letter-spacing:.04em;}
+    .term-pill button.act-fall{background:var(--fall);color:#fff;}
+    .term-pill button.act-spring{background:var(--spring);color:#fff;}
+    .term-pill button.act-summer{background:var(--summer);color:#fff;}
+
+    /* ── Reconciliation block ── */
+    .recon-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
+    .recon-blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+    .recon-block{border:.5px solid var(--bdr);border-radius:8px;overflow:hidden;}
+    .recon-block-hd{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;}
+    .recon-block-title{font-size:11px;font-weight:700;color:#fff;}
+    .recon-block-sub{font-size:9px;color:rgba(255,255,255,.65);}
+    .recon-block.fall .recon-block-hd{background:var(--fall);}
+    .recon-block.spring .recon-block-hd{background:var(--spring);}
+    .recon-block.summer .recon-block-hd{background:var(--summer);}
+    .recon-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff;}
+
+    /* ── Recon rows ── */
+    .recon-rows{padding:8px 0;}
+    .recon-row{display:grid;grid-template-columns:140px 1fr 1fr;gap:4px;align-items:center;padding:5px 12px;border-bottom:.5px solid var(--bdr);}
+    .recon-row:last-child{border-bottom:none;}
+    .recon-row.total-row{background:var(--off);font-weight:600;}
+    .recon-row.target-row{background:var(--pl);}
+    .recon-row.variance-row{background:var(--off);}
+    .recon-row.spacer{height:6px;background:var(--off);border-bottom:.5px solid var(--bdr);}
+    .row-lbl{font-size:11px;color:var(--txm);}
+    .row-lbl.bold{font-weight:700;color:var(--tx);}
+    .row-val{font-size:12px;font-weight:500;color:var(--tx);text-align:right;}
+    .row-val.neg{color:var(--dn);}
+    .row-val.pos{color:var(--up);}
+    .row-val.total{font-size:13px;font-weight:700;color:var(--p);}
+    .row-val.forecast{font-size:13px;font-weight:700;color:var(--summer);}
+    .row-pct{font-size:10px;color:var(--txl);text-align:right;}
+
+    /* ── Input cells ── */
+    .row-input{font-size:12px;font-weight:600;color:var(--tx);text-align:right;width:100%;border:.5px solid var(--gold);border-radius:4px;padding:2px 6px;background:#FFFDF5;font-family:var(--sans);outline:none;}
+    .row-input:focus{border-color:var(--p);background:#fff;}
+    .row-input::placeholder{color:#ccc;font-weight:400;}
+    .row-input-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+    .calc-hint{font-size:9px;color:var(--txl);font-style:italic;}
+
+    /* Toggle for estimate vs auto-calc */
+    .est-toggle{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--txl);}
+    .est-toggle input[type=checkbox]{width:11px;height:11px;cursor:pointer;accent-color:var(--p);}
+
+    /* Fav/Unfav badges */
+    .fav{background:var(--fav-bg);color:var(--up);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+    .unfav{background:var(--unfav-bg);color:var(--dn);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+    .na-badge{background:var(--off);color:var(--txl);font-size:10px;padding:2px 7px;border-radius:4px;}
+
+    /* ── Historical table ── */
+    .hist-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
+    .hist-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+    .hist-table th{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;white-space:nowrap;}
+    .hist-table th:first-child{text-align:left;}
+    .hist-table td{padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;color:var(--tx);}
+    .hist-table td:first-child{text-align:left;font-weight:600;color:var(--txm);}
+    .hist-table tr:hover td{background:var(--pl);}
+    .hist-table .avg-row td{font-weight:700;color:var(--p);background:var(--off);}
+    .hist-table .fav-cell{color:var(--up);}
+    .hist-table .unfav-cell{color:var(--dn);}
+
+    /* ── Chart section ── */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;border-bottom:.5px solid var(--bdr);}
+    .chart-pane{padding:14px 20px;border-right:.5px solid var(--bdr);}
+    .chart-pane:last-child{border-right:none;}
+    .legend{display:flex;gap:12px;margin-bottom:8px;font-size:11px;color:var(--txm);flex-wrap:wrap;}
+    .legend span{display:flex;align-items:center;gap:4px;}
+    .legend-sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+
+    /* ── Footer ── */
+    .footer-bar{padding:8px 20px;background:var(--off);border-top:.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+    .footer-tx{font-size:10px;color:var(--txl);}
+    .footer-link{font-size:10px;font-weight:600;color:var(--p);text-decoration:none;}
+
+    /* ── Notes ── */
+    .notes-section{padding:10px 20px;border-bottom:.5px solid var(--bdr);background:var(--off);}
+    .note-item{font-size:10px;color:var(--txm);line-height:1.6;}
+    .note-item strong{color:var(--tx);}
+
+    @media(max-width:800px){
+      .recon-blocks{grid-template-columns:1fr;}
+      .two-col{grid-template-columns:1fr;}
+      .metrics{grid-template-columns:repeat(2,1fr);}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-l">
+      <a href="https://romkeymm.github.io/MercyU/" class="back-btn">← Dashboard</a>
+      <div>
+        <div class="hdr-title">Total Enrollment Forecast</div>
+        <div class="hdr-sub" id="hdr-sub">Legacy enrollment · Historical reconciliation &amp; projection</div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <a href="admissions-funnel.html" class="btn btn-ghost">Admissions Funnel →</a>
+      <a href="student-forecast.html" class="btn btn-ghost">New Student Forecast →</a>
+    </div>
+  </div>
+
+  <!-- AY Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-lbl">Academic Year</div>
+      <div id="ay-btns" style="display:flex;gap:4px;"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group">
+      <div class="filter-lbl">View</div>
+      <button class="seg-btn active-ay" id="view-recon" onclick="setView('recon',this)">Reconciliation</button>
+      <button class="seg-btn" id="view-hist" onclick="setView('hist',this)">Historical</button>
+    </div>
+    <div class="view-pill" id="view-pill">AY25-26 · Reconciliation</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot live" id="status-dot"></div>
+    <span id="status-tx">Legacy enrollment — Fall 2015 through current</span>
+  </div>
+
+  <!-- AY KPI strip -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-lbl">Fall Enrollment</div>
+      <div class="metric-val" id="kpi-fall">—</div>
+      <div class="metric-delta nt" id="kpid-fall"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-lbl">Spring Enrollment</div>
+      <div class="metric-val" id="kpi-spring">—</div>
+      <div class="metric-delta nt" id="kpid-spring"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-lbl">Summer Enrollment</div>
+      <div class="metric-val" id="kpi-summer">—</div>
+      <div class="metric-delta nt" id="kpid-summer"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-lbl">AY Non-Returning Rate</div>
+      <div class="metric-val" id="kpi-nr" style="font-size:18px;">—</div>
+      <div class="metric-delta nt" id="kpid-nr"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       RECONCILIATION VIEW
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="recon-view">
+
+    <!-- Budget targets input banner -->
+    <div style="background:#FFFDF5;border-bottom:.5px solid var(--gold);padding:10px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;">Budget Targets</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txm);">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--fall);display:inline-block;"></span>Fall
+        <input type="number" id="target-fall" class="row-input" style="width:80px;" placeholder="e.g. 870" oninput="render()" />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txm);">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--spring);display:inline-block;"></span>Spring
+        <input type="number" id="target-spring" class="row-input" style="width:80px;" placeholder="e.g. 787" oninput="render()" />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txm);">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--summer);display:inline-block;"></span>Summer
+        <input type="number" id="target-summer" class="row-input" style="width:80px;" placeholder="e.g. 709" oninput="render()" />
+      </div>
+      <div style="font-size:9px;color:var(--txl);font-style:italic;margin-left:4px;">Budget targets are fixed for the academic year. Enter once.</div>
+    </div>
+
+    <!-- Three reconciliation blocks -->
+    <div class="recon-section">
+      <div class="section-hd">
+        Term-by-term reconciliation
+        <span class="section-hd-note">Yellow cells = manual input · Auto-calc shown in italics when no input entered</span>
+      </div>
+      <div class="recon-blocks" id="recon-blocks"></div>
+    </div>
+
+    <!-- AY Summary -->
+    <div style="padding:14px 20px;border-bottom:.5px solid var(--bdr);background:var(--off);">
+      <div class="section-hd">AY Summary</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="ay-summary"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="two-col">
+      <div class="chart-pane">
+        <div class="section-hd">Enrollment by term — all AYs</div>
+        <div class="legend">
+          <span><span class="legend-sq" style="background:var(--fall);"></span>Fall</span>
+          <span><span class="legend-sq" style="background:var(--spring);"></span>Spring</span>
+          <span><span class="legend-sq" style="background:var(--summer);"></span>Summer</span>
+        </div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="enr-chart"></canvas></div>
+      </div>
+      <div class="chart-pane">
+        <div class="section-hd">Non-returning rate by AY</div>
+        <div class="legend">
+          <span><span class="legend-sq" style="background:var(--dn);opacity:.6;"></span>Avg rate</span>
+          <span><span class="legend-sq" style="background:var(--pd);"></span>AY rate</span>
+        </div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="nr-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Methodology notes -->
+    <div class="notes-section">
+      <div class="section-hd" style="margin-bottom:6px;">Methodology Notes</div>
+      <div class="note-item"><strong>a. Graduates:</strong> Official count taken from SSRS Report on or after the 1st day of the subsequent term. Auto-calc uses 3-term average rate × official prior count. Toggle to override with manual estimate.</div>
+      <div class="note-item"><strong>b. Retained:</strong> Taken from Assigned Registration Report. May be adjusted via attrition rate to equal official enrollment count.</div>
+      <div class="note-item"><strong>c. New Students:</strong> Mid-point estimate pulled from New Student Forecast Dashboard. Includes previous students returning for additional degrees.</div>
+      <div class="note-item"><strong>d. Others Returning:</strong> Students who stopped out and return to finish degree, plus correction for non-priority registration. Uses 3-term avg when no official count entered.</div>
+      <div class="note-item"><strong>e. Non-Returning (plug):</strong> Calculated as residual using 3-term average non-return rate × Max to Return. Most recent 3 same-transition periods only.</div>
+    </div>
+
+  </div><!-- /recon-view -->
+
+  <!-- ══════════════════════════════════════════════════════════════
+       HISTORICAL VIEW
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="hist-view" style="display:none;">
+    <div class="hist-section">
+      <div class="section-hd">Fall → Spring Reconciliation — all years</div>
+      <table class="hist-table" id="tbl-f2s"></table>
+    </div>
+    <div class="hist-section">
+      <div class="section-hd">Spring → Summer Reconciliation — all years</div>
+      <table class="hist-table" id="tbl-s2su"></table>
+    </div>
+    <div class="hist-section">
+      <div class="section-hd">Summer → Fall Reconciliation — all years</div>
+      <table class="hist-table" id="tbl-su2f"></table>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div class="footer-tx" id="footer-tx">Source: Legacy Enrollment Reconciliation · enrollment_funnel_ay (Supabase)</div>
+    <div style="display:flex;gap:16px;">
+      <a href="student-forecast.html" class="footer-link">New Student Forecast →</a>
+      <a href="admissions-funnel.html" class="footer-link">Admissions Funnel →</a>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// DATA — seeded from Legacy Enrollment Reconciliation spreadsheet
+// ══════════════════════════════════════════════════════════════════
+
+// Historical seed: Fall→Spring transitions
+const F2S = [
+  {ay:'AY15-16',offFall:789,fallGrads:-32,fallGradPct:-0.0406,nonRet:-63,nrPct:-0.0832,retained:694,retPct:0.9168,newStudents:90,othersRet:8,offSpring:792,spTarget:824},
+  {ay:'AY16-17',offFall:771,fallGrads:-54,fallGradPct:-0.0700,nonRet:-53,nrPct:-0.0739,retained:664,retPct:0.9261,newStudents:89,othersRet:7,offSpring:760,spTarget:869},
+  {ay:'AY17-18',offFall:758,fallGrads:-89,fallGradPct:-0.1174,nonRet:-59,nrPct:-0.0882,retained:610,retPct:0.9118,newStudents:63,othersRet:12,offSpring:685,spTarget:766},
+  {ay:'AY18-19',offFall:729,fallGrads:-69,fallGradPct:-0.0947,nonRet:-72,nrPct:-0.1091,retained:588,retPct:0.8909,newStudents:110,othersRet:24,offSpring:722,spTarget:714},
+  {ay:'AY19-20',offFall:795,fallGrads:-75,fallGradPct:-0.0943,nonRet:-55,nrPct:-0.0764,retained:665,retPct:0.9236,newStudents:116,othersRet:8,offSpring:789,spTarget:786},
+  {ay:'AY20-21',offFall:795,fallGrads:-121,fallGradPct:-0.1522,nonRet:-60,nrPct:-0.0890,retained:614,retPct:0.9110,newStudents:151,othersRet:11,offSpring:776,spTarget:730},
+  {ay:'AY21-22',offFall:840,fallGrads:-107,fallGradPct:-0.1274,nonRet:-77,nrPct:-0.1050,retained:656,retPct:0.8950,newStudents:102,othersRet:7,offSpring:765,spTarget:781},
+  {ay:'AY22-23',offFall:765,fallGrads:-101,fallGradPct:-0.1320,nonRet:-85,nrPct:-0.1280,retained:579,retPct:0.8720,newStudents:128,othersRet:14,offSpring:721,spTarget:783},
+  {ay:'AY23-24',offFall:755,fallGrads:-108,fallGradPct:-0.1430,nonRet:-82,nrPct:-0.1267,retained:565,retPct:0.8733,newStudents:149,othersRet:21,offSpring:735,spTarget:795},
+  {ay:'AY24-25',offFall:854,fallGrads:-135,fallGradPct:-0.1581,nonRet:-131,nrPct:-0.1822,retained:588,retPct:0.8178,newStudents:169,othersRet:24,offSpring:781,spTarget:815},
+  {ay:'AY25-26',offFall:931,fallGrads:-100,fallGradPct:-0.1074,nonRet:-116,nrPct:-0.1396,retained:715,retPct:0.8604,newStudents:144,othersRet:10,offSpring:869,spTarget:787},
+];
+
+// Historical seed: Spring→Summer transitions
+const S2SU = [
+  {ay:'AY15-16',offSpring:792,spGrads:-111,spGradPct:-0.1402,nonRet:-93,nrPct:-0.1366,retained:588,retPct:0.8634,newStudents:66,othersRet:6,offSummer:660,suTarget:715},
+  {ay:'AY16-17',offSpring:760,spGrads:-60,spGradPct:-0.0789,nonRet:-92,nrPct:-0.1314,retained:608,retPct:0.8686,newStudents:61,othersRet:4,offSummer:673,suTarget:699},
+  {ay:'AY17-18',offSpring:683,spGrads:-64,spGradPct:-0.0937,nonRet:-79,nrPct:-0.1276,retained:540,retPct:0.8724,newStudents:61,othersRet:7,offSummer:608,suTarget:675},
+  {ay:'AY18-19',offSpring:722,spGrads:-55,spGradPct:-0.0762,nonRet:-121,nrPct:-0.1814,retained:546,retPct:0.8186,newStudents:79,othersRet:10,offSummer:635,suTarget:655},
+  {ay:'AY19-20',offSpring:789,spGrads:-62,spGradPct:-0.0786,nonRet:-79,nrPct:-0.1087,retained:648,retPct:0.8913,newStudents:85,othersRet:6,offSummer:739,suTarget:708},
+  {ay:'AY20-21',offSpring:776,spGrads:-86,spGradPct:-0.1108,nonRet:-121,nrPct:-0.1754,retained:569,retPct:0.8246,newStudents:100,othersRet:6,offSummer:675,suTarget:698},
+  {ay:'AY21-22',offSpring:765,spGrads:-106,spGradPct:-0.1386,nonRet:-67,nrPct:-0.1017,retained:592,retPct:0.8983,newStudents:66,othersRet:10,offSummer:668,suTarget:708},
+  {ay:'AY22-23',offSpring:721,spGrads:-77,spGradPct:-0.1068,nonRet:-88,nrPct:-0.1366,retained:556,retPct:0.8634,newStudents:91,othersRet:10,offSummer:657,suTarget:679},
+  {ay:'AY23-24',offSpring:735,spGrads:-98,spGradPct:-0.1333,nonRet:-121,nrPct:-0.1900,retained:516,retPct:0.8100,newStudents:141,othersRet:5,offSummer:662,suTarget:731},
+  {ay:'AY24-25',offSpring:781,spGrads:-115,spGradPct:-0.1472,nonRet:-145,nrPct:-0.2177,retained:521,retPct:0.7823,newStudents:170,othersRet:15,offSummer:706,suTarget:777},
+  {ay:'AY25-26',offSpring:869,spGrads:null,spGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offSummer:null,suTarget:709},
+];
+
+// Historical seed: Summer→Fall transitions
+const SU2F = [
+  {ay:'AY15-16',offSummer:660,suGrads:-133,suGradPct:-0.2015,nonRet:-27,nrPct:-0.0512,retained:500,retPct:0.9488,newStudents:230,othersRet:41,offFall:771,fallTarget:869},
+  {ay:'AY16-17',offSummer:673,suGrads:-145,suGradPct:-0.2155,nonRet:-44,nrPct:-0.0833,retained:484,retPct:0.9167,newStudents:224,othersRet:50,offFall:758,fallTarget:772},
+  {ay:'AY17-18',offSummer:608,suGrads:-130,suGradPct:-0.2138,nonRet:-53,nrPct:-0.1109,retained:425,retPct:0.8891,newStudents:259,othersRet:45,offFall:729,fallTarget:760},
+  {ay:'AY18-19',offSummer:635,suGrads:-169,suGradPct:-0.2661,nonRet:-61,nrPct:-0.1309,retained:405,retPct:0.8691,newStudents:325,othersRet:65,offFall:795,fallTarget:770},
+  {ay:'AY19-20',offSummer:739,suGrads:-197,suGradPct:-0.2666,nonRet:-65,nrPct:-0.1199,retained:477,retPct:0.8801,newStudents:280,othersRet:38,offFall:795,fallTarget:755},
+  {ay:'AY20-21',offSummer:675,suGrads:-136,suGradPct:-0.2015,nonRet:-32,nrPct:-0.0594,retained:507,retPct:0.9406,newStudents:287,othersRet:46,offFall:840,fallTarget:790},
+  {ay:'AY21-22',offSummer:668,suGrads:-175,suGradPct:-0.2620,nonRet:-38,nrPct:-0.0771,retained:455,retPct:0.9229,newStudents:273,othersRet:37,offFall:765,fallTarget:823},
+  {ay:'AY22-23',offSummer:657,suGrads:-168,suGradPct:-0.2557,nonRet:-66,nrPct:-0.1350,retained:423,retPct:0.8650,newStudents:292,othersRet:40,offFall:755,fallTarget:834},
+  {ay:'AY23-24',offSummer:662,suGrads:-156,suGradPct:-0.2356,nonRet:-101,nrPct:-0.1996,retained:405,retPct:0.8004,newStudents:388,othersRet:61,offFall:854,fallTarget:852},
+  {ay:'AY24-25',offSummer:706,suGrads:-158,suGradPct:-0.2238,nonRet:-75,nrPct:-0.1369,retained:473,retPct:0.8631,newStudents:389,othersRet:69,offFall:931,fallTarget:840},
+  {ay:'AY25-26',offSummer:null,suGrads:null,suGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offFall:null,fallTarget:null},
+];
+
+// ── 3-term average helper (most recent 3 complete rows, same transition type) ──
+function avg3(arr, field) {
+  const vals = arr.slice(-4, -1).map(r => r[field]).filter(v => v != null && v !== 0);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+}
+
+// ── Pre-compute 3-term averages ──
+const AVG = {
+  f2s: {
+    gradPct:    avg3(F2S, 'fallGradPct'),
+    nrPct:      avg3(F2S, 'nrPct'),
+    othersRet:  avg3(F2S, 'othersRet'),
+    newStudents:avg3(F2S, 'newStudents'),
+  },
+  s2su: {
+    gradPct:    avg3(S2SU, 'spGradPct'),
+    nrPct:      avg3(S2SU, 'nrPct'),
+    othersRet:  avg3(S2SU, 'othersRet'),
+    newStudents:avg3(S2SU, 'newStudents'),
+  },
+  su2f: {
+    gradPct:    avg3(SU2F, 'suGradPct'),
+    nrPct:      avg3(SU2F, 'nrPct'),
+    othersRet:  avg3(SU2F, 'othersRet'),
+    newStudents:avg3(SU2F, 'newStudents'),
+  },
+};
+
+// New student forecast seed (from student-forecast dashboard, mid-point estimates)
+const NEW_STUDENT_FORECAST = {
+  fall:   356,  // SU→Fall mid-estimate from 3-yr avg
+  spring: 154,  // F→Spring mid-estimate
+  summer: 134,  // SP→Summer mid-estimate
+};
+
+// ── State ──
+let curAY = 'AY25-26';
+let curView = 'recon';
+let enrChart = null, nrChart = null;
+
+const fmt = n => n != null ? Math.round(n).toLocaleString() : '—';
+const fmtPct = n => n != null ? (n*100).toFixed(1)+'%' : '—';
+const sign = n => n > 0 ? '+' : '';
+
+// ── Build AY buttons ──
+function buildAYButtons() {
+  const aySet = [...new Set([...F2S.map(r=>r.ay),...S2SU.map(r=>r.ay),...SU2F.map(r=>r.ay)])].sort();
+  const container = document.getElementById('ay-btns');
+  container.innerHTML = '';
+  aySet.slice(-6).forEach(ay => {
+    const btn = document.createElement('button');
+    btn.className = 'seg-btn' + (ay === curAY ? ' active-ay' : '');
+    btn.textContent = ay.replace('AY','');
+    btn.onclick = () => { curAY = ay; buildAYButtons(); render(); };
+    container.appendChild(btn);
+  });
+}
+
+// ── Get input value (returns null if empty) ──
+function inp(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const v = parseFloat(el.value);
+  return isNaN(v) ? null : v;
+}
+
+// ── Get current row data for an AY and transition type ──
+function getRow(dataset, ay) {
+  return dataset.find(r => r.ay === ay) || null;
+}
+
+// ── Compute a single recon block ──
+// Returns computed values, using official if present, falling back to forecast
+function computeBlock(type, ay) {
+  const datasets = { f2s: F2S, s2su: S2SU, su2f: SU2F };
+  const row = getRow(datasets[type], ay);
+  const avgs = AVG[type];
+
+  // Starting count: use official if known, else fed from prior block forecast
+  let startCount = null;
+  if (type === 'f2s') startCount = row?.offFall ?? null;
+  if (type === 's2su') startCount = row?.offSpring ?? null;
+  if (type === 'su2f') startCount = row?.offSummer ?? null;
+
+  // For in-progress or future blocks, allow hybrid chain
+  const isForward = row && (
+    (type === 'f2s'  && row.offSpring == null) ||
+    (type === 's2su' && row.offSummer == null) ||
+    (type === 'su2f' && row.offFall   == null)
+  );
+
+  // If no official start count, use chained forecast
+  if (startCount == null) {
+    if (type === 's2su') {
+      const f2sRow = computeBlock('f2s', ay);
+      startCount = f2sRow.officialEnd;
+    } else if (type === 'su2f') {
+      const s2suRow = computeBlock('s2su', ay);
+      startCount = s2suRow.officialEnd;
+    }
+  }
+
+  if (startCount == null) return null;
+
+  // Graduate override toggle
+  const useEstGrad = document.getElementById(`est-grad-${type}`)?.checked;
+  const manualGrad = inp(`grad-${type}`);
+
+  let grads;
+  if (useEstGrad && manualGrad != null) {
+    grads = -Math.abs(manualGrad);
+  } else {
+    const gradPct = avgs.gradPct;
+    grads = gradPct != null ? Math.round(startCount * gradPct) : (row?.[type === 'f2s' ? 'fallGrads' : type === 's2su' ? 'spGrads' : 'suGrads'] ?? null);
+  }
+
+  const maxReturn = startCount + (grads ?? 0);
+
+  // Non-returning: 3-term avg rate × maxReturn
+  const nrRate = avgs.nrPct;
+  let nonRet = null;
+  if (nrRate != null && maxReturn > 0) nonRet = Math.round(maxReturn * nrRate);
+  // Use actual if available and no manual needed
+  if (!isForward) {
+    const actualNR = row?.nonRet;
+    if (actualNR != null) nonRet = actualNR;
+  }
+
+  const retained = maxReturn + (nonRet ?? 0);
+
+  // New students: pull from forecast for forward, actual for historical
+  let newStudents;
+  if (isForward || !row?.newStudents) {
+    const manualNS = inp(`ns-${type}`);
+    if (manualNS != null) {
+      newStudents = manualNS;
+    } else {
+      newStudents = type === 'f2s' ? NEW_STUDENT_FORECAST.spring
+                  : type === 's2su' ? NEW_STUDENT_FORECAST.summer
+                  : NEW_STUDENT_FORECAST.fall;
+    }
+  } else {
+    newStudents = row.newStudents;
+  }
+
+  // Others returning: 3-term avg or actual
+  let othersRet;
+  if (!isForward && row?.othersRet != null) {
+    othersRet = row.othersRet;
+  } else {
+    const manualOR = inp(`or-${type}`);
+    othersRet = manualOR ?? Math.round(avgs.othersRet ?? 0);
+  }
+
+  const officialEnd = retained + newStudents + othersRet;
+
+  // Target from input fields
+  const targetKey = type === 'f2s' ? 'spring' : type === 's2su' ? 'summer' : 'fall';
+  const target = inp(`target-${targetKey}`) ?? (
+    type === 'f2s'  ? (row?.spTarget  ?? null) :
+    type === 's2su' ? (row?.suTarget  ?? null) :
+                      (row?.fallTarget ?? null)
+  );
+  const variance = (target != null) ? Math.round(officialEnd - target) : null;
+
+  return {
+    startCount, grads, gradPct: grads != null && startCount ? grads/startCount : null,
+    maxReturn, nonRet, nrRate: nonRet != null && maxReturn ? nonRet/maxReturn : null,
+    retained, retRate: maxReturn ? retained/maxReturn : null,
+    newStudents, othersRet, officialEnd,
+    target, variance,
+    isForward: isForward || !row?.offSpring && type === 'f2s',
+    isForecast: !row || isForward,
+  };
+}
+
+// ── Render a single recon block card ──
+function renderBlock(type, ay) {
+  const labels = {
+    f2s:  { title: 'Fall → Spring',  color: 'spring', from: 'Fall', to: 'Spring', termColor: 'var(--spring)' },
+    s2su: { title: 'Spring → Summer',color: 'summer', from: 'Spring', to: 'Summer', termColor: 'var(--summer)' },
+    su2f: { title: 'Summer → Fall',  color: 'fall',   from: 'Summer', to: 'Fall', termColor: 'var(--fall)' },
+  };
+  const cfg = labels[type];
+  const calc = computeBlock(type, ay);
+  if (!calc) return `<div class="recon-block ${cfg.color}"><div class="recon-block-hd"><div><div class="recon-block-title">${cfg.title}</div><div class="recon-block-sub">No data</div></div></div></div>`;
+
+  const isFc = calc.isForecast;
+  const statusLabel = isFc ? '▲ Forecast' : '✓ Actual';
+
+  const valClass = (n) => n < 0 ? 'neg' : n > 0 ? 'pos' : '';
+  const endClass = isFc ? 'forecast' : 'total';
+
+  const varBadge = calc.variance != null
+    ? (calc.variance >= 0
+        ? `<span class="fav">+${fmt(calc.variance)} Fav</span>`
+        : `<span class="unfav">${fmt(calc.variance)} Unfav</span>`)
+    : `<span class="na-badge">No target</span>`;
+
+  // Graduate row: toggle + optional override input
+  const gradAutoVal = calc.startCount && AVG[type].gradPct
+    ? Math.round(calc.startCount * AVG[type].gradPct) : null;
+
+  const gradRow = `
+    <div class="recon-row">
+      <div class="row-lbl">
+        ${cfg.from} Graduates
+        <div class="est-toggle">
+          <input type="checkbox" id="est-grad-${type}" onchange="render()" title="Check to override with manual estimate" />
+          <label for="est-grad-${type}">Use estimate</label>
+        </div>
+      </div>
+      <div class="row-input-wrap">
+        <input type="number" id="grad-${type}" class="row-input" style="width:80px;"
+          placeholder="${gradAutoVal != null ? gradAutoVal : '—'}"
+          oninput="render()" />
+        <span class="calc-hint">${gradAutoVal != null ? 'auto: ' + gradAutoVal : ''}</span>
+      </div>
+      <div class="row-pct">${fmtPct(calc.gradPct)}</div>
+    </div>`;
+
+  return `<div class="recon-block ${cfg.color}">
+    <div class="recon-block-hd">
+      <div>
+        <div class="recon-block-title">${cfg.title} · ${ay}</div>
+        <div class="recon-block-sub">Starting: ${fmt(calc.startCount)} ${cfg.from} enrollment</div>
+      </div>
+      <div class="recon-status">${statusLabel}</div>
+    </div>
+    <div class="recon-rows">
+      <div class="recon-row">
+        <div class="row-lbl bold">Official ${cfg.from} Count</div>
+        <div class="row-val total">${fmt(calc.startCount)}</div>
+        <div class="row-pct"></div>
+      </div>
+      ${gradRow}
+      <div class="recon-row">
+        <div class="row-lbl">Max to Return in ${cfg.to}</div>
+        <div class="row-val">${fmt(calc.maxReturn)}</div>
+        <div class="row-pct"></div>
+      </div>
+      <div class="recon-row">
+        <div class="row-lbl">
+          Non-Returning (plug)
+          <div style="font-size:9px;color:var(--txl);font-style:italic;">3-term avg rate × max return</div>
+        </div>
+        <div class="row-val neg">${fmt(calc.nonRet)}</div>
+        <div class="row-pct">${fmtPct(calc.nrRate)}</div>
+      </div>
+      <div class="recon-row">
+        <div class="row-lbl">Retained</div>
+        <div class="row-val">${fmt(calc.retained)}</div>
+        <div class="row-pct">${fmtPct(calc.retRate)}</div>
+      </div>
+      <div class="recon-row spacer"></div>
+      <div class="recon-row">
+        <div class="row-lbl">
+          New Students
+          <div style="font-size:9px;color:var(--txl);font-style:italic;">${isFc ? 'from forecast dashboard' : 'official census'}</div>
+        </div>
+        <div class="row-val pos">${fmt(calc.newStudents)}</div>
+        <div class="row-pct"></div>
+      </div>
+      <div class="recon-row">
+        <div class="row-lbl">Others Returning</div>
+        <div class="row-val pos">${fmt(calc.othersRet)}</div>
+        <div class="row-pct">${isFc ? '<span style="color:var(--txl);font-style:italic;">3-term avg</span>' : ''}</div>
+      </div>
+      <div class="recon-row total-row">
+        <div class="row-lbl bold">Official ${cfg.to} Count</div>
+        <div class="row-val ${endClass}">${fmt(calc.officialEnd)}</div>
+        <div class="row-pct"></div>
+      </div>
+      <div class="recon-row spacer"></div>
+      <div class="recon-row target-row">
+        <div class="row-lbl">${cfg.to} Budget Target</div>
+        <div class="row-val">${calc.target != null ? fmt(calc.target) : '<span style="color:var(--txl);">Enter above</span>'}</div>
+        <div class="row-pct"></div>
+      </div>
+      <div class="recon-row variance-row">
+        <div class="row-lbl">Variance to Target</div>
+        <div class="row-val">${varBadge}</div>
+        <div class="row-pct"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Render AY summary strip ──
+function renderAYSummary(ay) {
+  const f2s  = computeBlock('f2s',  ay);
+  const s2su = computeBlock('s2su', ay);
+  const su2f = computeBlock('su2f', ay);
+
+  // Non-returning rate: avg across all three transitions
+  const nrRates = [f2s?.nrRate, s2su?.nrRate, su2f?.nrRate].filter(v => v != null);
+  const ayNR = nrRates.length ? nrRates.reduce((a,b)=>a+b,0)/nrRates.length : null;
+
+  const cards = [
+    { lbl:'Fall', val: su2f?.officialEnd, color:'var(--fall)', fc: su2f?.isForecast },
+    { lbl:'Spring', val: f2s?.officialEnd, color:'var(--spring)', fc: f2s?.isForecast },
+    { lbl:'Summer', val: s2su?.officialEnd, color:'var(--summer)', fc: s2su?.isForecast },
+    { lbl:'Avg Non-Return Rate', val: ayNR != null ? fmtPct(ayNR) : '—', color:'var(--pd)', raw:true },
+  ];
+
+  document.getElementById('ay-summary').innerHTML = cards.map(c => `
+    <div style="background:var(--off);border:.5px solid var(--bdr);border-radius:8px;padding:10px 12px;border-top:3px solid ${c.color};">
+      <div style="font-size:10px;color:var(--txl);margin-bottom:4px;">${c.lbl}</div>
+      <div style="font-size:20px;font-weight:600;color:${c.color};">${c.raw ? c.val : fmt(c.val)}${c.fc ? '<span style="font-size:10px;color:var(--txl);font-weight:400;margin-left:4px;">forecast</span>' : ''}</div>
+    </div>`).join('');
+
+  // Update KPIs
+  const fallRow  = SU2F.find(r=>r.ay===ay);
+  const spRow    = F2S.find(r=>r.ay===ay);
+  const suRow    = S2SU.find(r=>r.ay===ay);
+
+  const fallVal  = su2f?.officialEnd;
+  const spVal    = f2s?.officialEnd;
+  const suVal    = s2su?.officialEnd;
+
+  // Compare to prior AY
+  const ayList   = [...new Set(F2S.map(r=>r.ay))].sort();
+  const priorIdx = ayList.indexOf(ay) - 1;
+  const priorAY  = priorIdx >= 0 ? ayList[priorIdx] : null;
+
+  function deltaStr(val, priorVal, el) {
+    const d = document.getElementById(el);
+    if (!d) return;
+    if (val != null && priorVal != null) {
+      const diff = Math.round(val - priorVal);
+      d.textContent = sign(diff) + fmt(Math.abs(diff)) + ' vs ' + (priorAY||'');
+      d.className = 'metric-delta ' + (diff >= 0 ? 'up' : 'dn');
+    } else { d.textContent = ''; d.className = 'metric-delta nt'; }
+  }
+
+  document.getElementById('kpi-fall').textContent   = fmt(fallVal);
+  document.getElementById('kpi-spring').textContent = fmt(spVal);
+  document.getElementById('kpi-summer').textContent = fmt(suVal);
+  document.getElementById('kpi-nr').textContent     = ayNR != null ? fmtPct(ayNR) : '—';
+
+  if (priorAY) {
+    const prF2s  = computeBlockSimple('f2s',  priorAY);
+    const prS2Su = computeBlockSimple('s2su', priorAY);
+    const prSu2F = computeBlockSimple('su2f', priorAY);
+    deltaStr(fallVal,  prSu2F?.officialEnd, 'kpid-fall');
+    deltaStr(spVal,    prF2s?.officialEnd,  'kpid-spring');
+    deltaStr(suVal,    prS2Su?.officialEnd, 'kpid-summer');
+  }
+
+  const priorNRRates = [
+    F2S.find(r=>r.ay===priorAY)?.nrPct,
+    S2SU.find(r=>r.ay===priorAY)?.nrPct,
+    SU2F.find(r=>r.ay===priorAY)?.nrPct,
+  ].filter(v=>v!=null);
+  const priorNR = priorNRRates.length ? priorNRRates.reduce((a,b)=>a+b,0)/priorNRRates.length : null;
+  const nrD = document.getElementById('kpid-nr');
+  if (ayNR != null && priorNR != null) {
+    const diff = ayNR - priorNR;
+    nrD.textContent = (diff >= 0 ? '+' : '') + (diff*100).toFixed(1) + 'pp vs prior AY';
+    nrD.className = 'metric-delta ' + (diff <= 0 ? 'up' : 'dn'); // lower NR is better
+  }
+}
+
+// Simple version of computeBlock that doesn't read DOM inputs (for prior-year comparison)
+function computeBlockSimple(type, ay) {
+  const datasets = { f2s: F2S, s2su: S2SU, su2f: SU2F };
+  const row = getRow(datasets[type], ay);
+  if (!row) return null;
+  const avgs = AVG[type];
+  let startCount = type==='f2s' ? row.offFall : type==='s2su' ? row.offSpring : row.offSummer;
+  if (!startCount) return null;
+  const grads = row[type==='f2s'?'fallGrads':type==='s2su'?'spGrads':'suGrads'] ?? Math.round(startCount*(avgs.gradPct??0));
+  const maxReturn = startCount + grads;
+  const nonRet = row.nonRet ?? Math.round(maxReturn*(avgs.nrPct??0));
+  const retained = maxReturn + nonRet;
+  const newStudents = row.newStudents ?? Math.round(avgs.newStudents??0);
+  const othersRet = row.othersRet ?? Math.round(avgs.othersRet??0);
+  const officialEnd = retained + newStudents + othersRet;
+  return { officialEnd, nrRate: maxReturn ? nonRet/maxReturn : null };
+}
+
+// ── Build historical tables ──
+function buildHistTables() {
+  const makeTable = (data, cols) => {
+    const hdrs = cols.map(c=>`<th>${c.label}</th>`).join('');
+    // data rows
+    const rows = data.slice(0,-1).map(r => {
+      const cells = cols.map(c => {
+        const v = r[c.field];
+        let display = v == null ? '—' : (c.isPct ? fmtPct(v) : fmt(v));
+        let cls = '';
+        if (c.field === 'variance' || c.field === 'spTarget' || c.field === 'suTarget' || c.field === 'fallTarget') {
+          const varVal = r.offSpring != null ? r.offSpring - (r.spTarget??r.offSpring)
+                      : r.offSummer != null ? r.offSummer - (r.suTarget??r.offSummer)
+                      : r.offFall   != null ? r.offFall   - (r.fallTarget??r.offFall) : null;
+        }
+        if (c.neg && v != null) cls = 'unfav-cell';
+        if (c.pos && v != null) cls = 'fav-cell';
+        return `<td class="${cls}">${display}</td>`;
+      }).join('');
+      const isTarget = false;
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    // Avg row
+    const avgCells = cols.map(c => {
+      if (c.field === 'ay') return '<td>3-Yr Avg</td>';
+      const vals = data.slice(-4,-1).map(r=>r[c.field]).filter(v=>v!=null&&v!==0);
+      const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+      return `<td>${avg == null ? '—' : (c.isPct ? fmtPct(avg) : fmt(avg))}</td>`;
+    }).join('');
+
+    return `<thead><tr>${hdrs}</tr></thead><tbody>${rows}<tr class="avg-row">${avgCells}</tr></tbody>`;
+  };
+
+  document.getElementById('tbl-f2s').innerHTML = makeTable(F2S, [
+    {field:'ay',label:'AY'},{field:'offFall',label:'Official Fall'},
+    {field:'fallGrads',label:'Fall Grads',neg:true},{field:'fallGradPct',label:'Grad %',isPct:true},
+    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
+    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet',label:'Others Ret',pos:true},{field:'offSpring',label:'Official Spring'},
+    {field:'spTarget',label:'Target'},
+  ]);
+
+  document.getElementById('tbl-s2su').innerHTML = makeTable(S2SU, [
+    {field:'ay',label:'AY'},{field:'offSpring',label:'Official Spring'},
+    {field:'spGrads',label:'Sp Grads',neg:true},{field:'spGradPct',label:'Grad %',isPct:true},
+    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
+    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet',label:'Others Ret',pos:true},{field:'offSummer',label:'Official Summer'},
+    {field:'suTarget',label:'Target'},
+  ]);
+
+  document.getElementById('tbl-su2f').innerHTML = makeTable(SU2F, [
+    {field:'ay',label:'AY'},{field:'offSummer',label:'Official Summer'},
+    {field:'suGrads',label:'Su Grads',neg:true},{field:'suGradPct',label:'Grad %',isPct:true},
+    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
+    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet',label:'Others Ret',pos:true},{field:'offFall',label:'Official Fall'},
+    {field:'fallTarget',label:'Target'},
+  ]);
+}
+
+// ── Charts ──
+function buildCharts() {
+  const ayList = [...new Set(F2S.map(r=>r.ay))].sort().slice(-8);
+  const labels = ayList.map(ay=>ay.replace('AY',''));
+  const fallData   = ayList.map(ay=>{ const r=SU2F.find(d=>d.ay===ay); return r?.offFall??null; });
+  const spData     = ayList.map(ay=>{ const r=F2S.find(d=>d.ay===ay);  return r?.offSpring??null; });
+  const suData     = ayList.map(ay=>{ const r=S2SU.find(d=>d.ay===ay); return r?.offSummer??null; });
+
+  const ctx1 = document.getElementById('enr-chart').getContext('2d');
+  enrChart = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels,
+      datasets:[
+        {label:'Fall',  data:fallData, backgroundColor:'#185FA5',borderRadius:3},
+        {label:'Spring',data:spData,   backgroundColor:'#5A8C3C',borderRadius:3},
+        {label:'Summer',data:suData,   backgroundColor:'#BA7517',borderRadius:3},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{stacked:true,ticks:{font:{size:9},autoSkip:false},grid:{display:false}},
+        y:{stacked:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}}
+      }
+    }
+  });
+
+  // NR rate chart
+  const nrData = ayList.map(ay=>{
+    const f = F2S.find(r=>r.ay===ay)?.nrPct;
+    const s = S2SU.find(r=>r.ay===ay)?.nrPct;
+    const su = SU2F.find(r=>r.ay===ay)?.nrPct;
+    const vals = [f,s,su].filter(v=>v!=null);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length)*100 : null;
+  });
+  const avgNR = nrData.filter(v=>v!=null).slice(0,-1).reduce((a,b)=>a+b,0) / nrData.filter(v=>v!=null).slice(0,-1).length;
+
+  const ctx2 = document.getElementById('nr-chart').getContext('2d');
+  nrChart = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels,
+      datasets:[
+        {label:'Avg NR rate',data:labels.map(()=>parseFloat(avgNR.toFixed(2))),type:'line',
+          borderColor:'rgba(121,31,31,.4)',backgroundColor:'transparent',
+          borderDash:[4,3],borderWidth:1.5,pointRadius:0,tension:0},
+        {label:'AY NR rate',data:nrData,backgroundColor:'#2E1A42',borderRadius:3},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{font:{size:9},autoSkip:false},grid:{display:false}},
+        y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}}
+      }
+    }
+  });
+}
+
+// ── Main render ──
+function render() {
+  // Recon blocks
+  document.getElementById('recon-blocks').innerHTML =
+    renderBlock('f2s',  curAY) +
+    renderBlock('s2su', curAY) +
+    renderBlock('su2f', curAY);
+
+  renderAYSummary(curAY);
+
+  document.getElementById('view-pill').textContent = `${curAY} · ${curView === 'recon' ? 'Reconciliation' : 'Historical'}`;
+  document.getElementById('hdr-sub').textContent = `Legacy enrollment · ${curAY} · Historical reconciliation & projection`;
+
+  // Restore checkbox/input states after re-render (need to re-attach them)
+  // Note: inputs re-render so their values reset on rerender — store state
+}
+
+function setView(v, btn) {
+  curView = v;
+  document.querySelectorAll('.filter-group .seg-btn').forEach(b => {
+    if (b.id === 'view-recon' || b.id === 'view-hist') b.className = 'seg-btn';
+  });
+  btn.className = 'seg-btn active-ay';
+  document.getElementById('recon-view').style.display = v === 'recon' ? '' : 'none';
+  document.getElementById('hist-view').style.display  = v === 'hist'  ? '' : 'none';
+  document.getElementById('view-pill').textContent = `${curAY} · ${v === 'recon' ? 'Reconciliation' : 'Historical'}`;
+}
+
+// ── Pre-populate budget targets for AY25-26 ──
+function prefillTargets() {
+  document.getElementById('target-spring').value = 787;
+  document.getElementById('target-summer').value = 709;
+}
+
+// ── Init ──
+buildAYButtons();
+buildHistTables();
+buildCharts();
+prefillTargets();
+render();
+</script>
+</body>
+</html>
