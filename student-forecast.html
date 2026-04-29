@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MercyU — New Student Forecast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --p:#4A2C6B;--pd:#2E1A42;--pm:#5D3880;--pl:#F0EBF8;
+      --g:#5A8C3C;--gd:#3A5C26;--gl:#7AB558;
+      --gold:#C8A84B;--w:#fff;--off:#F7F5F2;--bdr:#E8E4DF;
+      --tx:#1A1A1A;--txm:#666;--txl:#999;
+      --fall:#185FA5;--spring:#5A8C3C;--summer:#BA7517;
+      --serif:'Libre Baskerville',Georgia,serif;
+      --sans:'Source Sans 3',Arial,sans-serif;
+      --up:#27500A;--dn:#791F1F;
+    }
+    body{font-family:var(--sans);background:#EDEAE6;min-height:100vh;padding:20px 16px;}
+    .page{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:0;background:var(--w);border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);box-shadow:0 2px 16px rgba(0,0,0,.08);}
+
+    /* Header */
+    .hdr{background:var(--pd);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+    .hdr-l{display:flex;align-items:center;gap:12px;}
+    .back-btn{color:rgba(255,255,255,.6);text-decoration:none;font-size:11px;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);}
+    .back-btn:hover{background:rgba(255,255,255,.1);}
+    .hdr-title{font-size:15px;font-weight:500;color:#fff;}
+    .hdr-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;}
+    .hdr-r{display:flex;align-items:center;gap:8px;}
+    .btn{font-size:11px;font-weight:600;padding:6px 14px;border-radius:5px;border:none;cursor:pointer;letter-spacing:.03em;}
+    .btn-export{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);}
+    .btn-export:hover{background:rgba(255,255,255,.25);}
+    .btn-add{background:var(--g);color:#fff;}
+    .btn-add:hover{opacity:.9;}
+
+    /* Filter bar */
+    .filter-bar{background:var(--off);border-bottom:.5px solid var(--bdr);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .filter-group{display:flex;align-items:center;gap:6px;}
+    .filter-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--txl);}
+    .seg-btn{font-size:11px;font-weight:500;padding:4px 11px;border-radius:5px;border:.5px solid var(--bdr);color:var(--txm);background:var(--w);cursor:pointer;transition:all .15s;}
+    .seg-btn:hover{border-color:var(--p);color:var(--p);}
+    .seg-btn.a-fall{background:var(--fall);border-color:var(--fall);color:#fff;}
+    .seg-btn.a-spring{background:var(--spring);border-color:var(--spring);color:#fff;}
+    .seg-btn.a-summer{background:var(--summer);border-color:var(--summer);color:#fff;}
+    .seg-btn.a-window{background:var(--pd);border-color:var(--pd);color:#fff;}
+    .divider{width:1px;height:20px;background:var(--bdr);}
+    .view-pill{margin-left:auto;font-size:10px;color:var(--txm);background:var(--w);border:.5px solid var(--bdr);padding:3px 10px;border-radius:4px;}
+
+    /* Status bar */
+    .status-bar{padding:6px 20px;background:#fff;border-bottom:.5px solid var(--bdr);font-size:10px;color:var(--txl);display:flex;align-items:center;gap:8px;}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:#ccc;}
+    .status-dot.live{background:#3A6D11;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+    /* Input section */
+    .input-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);background:var(--off);}
+    .section-hd{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--txl);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+    .input-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:10px;align-items:end;}
+    .input-group{display:flex;flex-direction:column;gap:4px;}
+    .input-lbl{font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--txm);text-transform:uppercase;}
+    .input-field{padding:8px 10px;border:.5px solid var(--bdr);border-radius:5px;font-size:13px;font-family:var(--sans);color:var(--tx);background:#fff;width:100%;}
+    .input-field:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px var(--pl);}
+    .input-field.highlight{border-color:var(--gold);background:#FFFDF5;}
+    .input-note{font-size:9px;color:var(--txl);margin-top:2px;}
+    .run-btn{background:var(--p);color:#fff;border:none;padding:9px 20px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);white-space:nowrap;transition:background .15s;}
+    .run-btn:hover{background:var(--pm);}
+    .run-btn:disabled{opacity:.5;cursor:not-allowed;}
+    .input-row2{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px;}
+    .funnel-input{display:flex;flex-direction:column;gap:4px;}
+    .funnel-input-lbl{font-size:10px;font-weight:600;color:var(--txm);letter-spacing:.04em;text-transform:uppercase;}
+    .funnel-input-field{padding:8px 10px;border:.5px solid var(--gold);border-radius:5px;font-size:15px;font-weight:600;font-family:var(--sans);color:var(--tx);background:#FFFDF5;width:100%;text-align:right;}
+    .funnel-input-field:focus{outline:none;border-color:var(--p);background:#fff;}
+    .funnel-input-field::placeholder{color:#ccc;font-weight:400;font-size:13px;}
+
+    /* KPI metrics strip — same as admissions funnel */
+    .metrics{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:.5px solid var(--bdr);}
+    .metric{padding:12px 14px;border-right:.5px solid var(--bdr);}
+    .metric:last-child{border-right:none;}
+    .metric-lbl{font-size:10px;color:var(--txl);margin-bottom:3px;}
+    .metric-val{font-size:22px;font-weight:500;color:var(--p);line-height:1;}
+    .metric-delta{font-size:10px;margin-top:3px;}
+    .up{color:var(--up);} .dn{color:var(--dn);} .nt{color:var(--txl);}
+    .metric-sub{font-size:9px;color:var(--txl);margin-top:2px;}
+
+    /* Forecast funnel section */
+    .funnel-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
+    .funnel-grid{display:flex;flex-direction:column;gap:8px;}
+    .f-row{display:grid;grid-template-columns:110px 1fr 70px 80px 80px 80px 70px;gap:8px;align-items:center;}
+    .f-lbl{font-size:12px;font-weight:500;color:var(--tx);text-align:right;}
+    .f-track{background:var(--off);border-radius:5px;height:28px;overflow:hidden;}
+    .f-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:500;color:#fff;transition:width .6s ease;}
+    .f-count{font-size:13px;font-weight:500;color:var(--tx);text-align:center;}
+    .f-forecast{font-size:13px;font-weight:600;text-align:center;}
+    .f-hist{font-size:11px;text-align:center;color:var(--txm);}
+    .f-delta{font-size:11px;font-weight:600;text-align:center;}
+    .f-conf{font-size:10px;text-align:center;}
+    .col-hd{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);text-align:center;}
+
+    /* Forecast vs history on track / off track */
+    .on-track{color:var(--up);}
+    .off-track{color:var(--dn);}
+    .watch{color:#7A5300;}
+
+    /* Conversion rates section */
+    .conv-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
+    .conv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;}
+    .conv-card{background:var(--off);border-radius:8px;padding:12px 14px;border:.5px solid var(--bdr);}
+    .conv-label{font-size:10px;color:var(--txm);margin-bottom:6px;font-weight:600;letter-spacing:.03em;}
+    .conv-arrow{font-size:9px;color:var(--txl);display:block;margin-bottom:4px;}
+    .conv-rate{font-size:24px;font-weight:500;color:var(--p);line-height:1;margin-bottom:4px;}
+    .conv-hist{font-size:10px;color:var(--txl);}
+    .conv-hist span{font-weight:600;}
+    .conv-status{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;margin-top:6px;padding:2px 7px;border-radius:4px;}
+    .conv-status.good{background:#E8F5E0;color:var(--up);}
+    .conv-status.warn{background:#FFF8E1;color:#7A5300;}
+    .conv-status.bad{background:#FCE8E8;color:var(--dn);}
+
+    /* YOY comparison + trend charts */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;border-bottom:.5px solid var(--bdr);}
+    .chart-pane{padding:14px 20px;border-right:.5px solid var(--bdr);}
+    .chart-pane:last-child{border-right:none;}
+    .legend{display:flex;gap:12px;margin-bottom:8px;font-size:11px;color:var(--txm);flex-wrap:wrap;}
+    .legend span{display:flex;align-items:center;gap:4px;}
+    .legend-sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+
+    /* Historical tracking table */
+    .hist-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
+    .hist-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;}
+    .hist-table th{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;}
+    .hist-table th:first-child{text-align:left;}
+    .hist-table td{padding:6px 8px;border-bottom:.5px solid var(--bdr);text-align:right;color:var(--tx);font-size:11px;}
+    .hist-table td:first-child{text-align:left;font-weight:500;}
+    .hist-table tr:last-child td{border-bottom:none;}
+    .hist-table tr:hover td{background:var(--pl);}
+    .hist-table .avg-row td{font-weight:600;color:var(--p);background:var(--off);}
+    .hist-table .cur-row td{font-weight:600;background:#FFFDF5;border-left:2px solid var(--gold);}
+
+    /* Footer */
+    .footer-bar{padding:8px 20px;background:var(--off);border-top:.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+    .footer-tx{font-size:10px;color:var(--txl);}
+    .footer-link{font-size:10px;font-weight:600;color:var(--p);text-decoration:none;}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:10px;padding:24px;width:520px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+    .modal-hd{font-size:15px;font-weight:600;color:var(--pd);margin-bottom:4px;}
+    .modal-sub{font-size:11px;color:var(--txm);margin-bottom:20px;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+    .form-group{display:flex;flex-direction:column;gap:4px;}
+    .form-group.full{grid-column:1/-1;}
+    .form-label{font-size:11px;font-weight:600;color:var(--tx);letter-spacing:.03em;}
+    .form-input{padding:8px 10px;border:.5px solid var(--bdr);border-radius:5px;font-size:13px;font-family:var(--sans);color:var(--tx);background:#fff;}
+    .form-input:focus{outline:none;border-color:var(--p);}
+    .form-select{padding:8px 10px;border:.5px solid var(--bdr);border-radius:5px;font-size:13px;font-family:var(--sans);color:var(--tx);background:#fff;cursor:pointer;}
+    .form-select:focus{outline:none;border-color:var(--p);}
+    .form-note{font-size:10px;color:var(--txl);margin-top:2px;}
+    .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+    .btn-cancel{background:var(--off);color:var(--tx);border:.5px solid var(--bdr);padding:8px 16px;border-radius:5px;cursor:pointer;font-size:12px;font-family:var(--sans);}
+    .btn-save{background:var(--p);color:#fff;border:none;padding:8px 20px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);}
+    .btn-save:hover{background:var(--pm);}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed;}
+    .save-msg{font-size:11px;margin-right:auto;padding:4px 0;}
+    .save-msg.success{color:var(--up);}
+    .save-msg.error{color:var(--dn);}
+
+    /* Loading */
+    .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--txl);font-size:13px;gap:10px;}
+    .spinner{width:18px;height:18px;border:2px solid var(--bdr);border-top-color:var(--p);border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* Snapshot badge */
+    .snap-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;border:.5px solid var(--bdr);background:var(--w);color:var(--txm);}
+    .snap-dot{width:6px;height:6px;border-radius:50%;}
+
+    /* Remaining growth note */
+    .growth-note{font-size:10px;color:var(--txm);font-style:italic;padding:6px 0 0;}
+
+    /* Enrolled range display */
+    .enr-range{display:flex;flex-direction:column;align-items:center;gap:1px;}
+    .enr-range-val{font-size:18px;font-weight:600;color:var(--gd);line-height:1.15;white-space:nowrap;letter-spacing:-.02em;}
+    .enr-range-lbl{font-size:9px;color:var(--txl);letter-spacing:.04em;text-transform:uppercase;}
+    .f-range{display:flex;flex-direction:column;align-items:center;gap:2px;}
+    .f-range-num{font-size:12px;font-weight:700;color:var(--gd);white-space:nowrap;}
+    .f-range-basis{font-size:9px;color:var(--txl);white-space:nowrap;}
+
+    /* Window tabs for 1yr/3yr/5yr/all */
+    .window-tabs{display:flex;gap:4px;}
+
+    @media(max-width:700px){
+      .input-grid{grid-template-columns:1fr 1fr 1fr;}
+      .input-row2{grid-template-columns:1fr 1fr;}
+      .f-row{grid-template-columns:80px 1fr 60px 60px 60px;font-size:11px;}
+      .conv-grid{grid-template-columns:1fr 1fr;}
+      .two-col{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-l">
+      <a href="https://romkeymm.github.io/MercyU/" class="back-btn">← Dashboard</a>
+      <div>
+        <div class="hdr-title">New Student Forecast</div>
+        <div class="hdr-sub" id="hdr-sub">Trend-based projection · Current counts + historical remaining growth</div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <button class="btn btn-export" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-add" onclick="openModal()">+ Log Snapshot</button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-lbl">Term</div>
+      <button class="seg-btn a-fall" id="btn-Fall"   onclick="setTerm('Fall',this)">Fall</button>
+      <button class="seg-btn"        id="btn-Spring" onclick="setTerm('Spring',this)">Spring</button>
+      <button class="seg-btn"        id="btn-Summer" onclick="setTerm('Summer',this)">Summer</button>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group">
+      <div class="filter-lbl">Trend Window</div>
+      <div class="window-tabs" id="window-tabs">
+        <button class="seg-btn"           onclick="setWindow(1,this)">1-Year</button>
+        <button class="seg-btn a-window"  onclick="setWindow(3,this)">3-Year</button>
+        <button class="seg-btn"           onclick="setWindow(5,this)">5-Year</button>
+        <button class="seg-btn"           onclick="setWindow(99,this)">All-Time</button>
+      </div>
+    </div>
+    <div class="view-pill" id="view-pill">Loading...</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-tx">Connecting to Supabase...</span>
+  </div>
+
+  <!-- Current-data input section -->
+  <div class="input-section">
+    <div class="section-hd">
+      Today's Funnel Counts
+      <span style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;">Enter current numbers below — forecast updates automatically</span>
+    </div>
+    <div class="input-row2" id="funnel-inputs">
+      <div class="funnel-input">
+        <div class="funnel-input-lbl">Inquiries</div>
+        <input class="funnel-input-field" type="number" id="inp-inq" placeholder="—" min="0" oninput="recalc()" />
+      </div>
+      <div class="funnel-input">
+        <div class="funnel-input-lbl">Applications</div>
+        <input class="funnel-input-field" type="number" id="inp-app" placeholder="—" min="0" oninput="recalc()" />
+      </div>
+      <div class="funnel-input">
+        <div class="funnel-input-lbl">Admissions</div>
+        <input class="funnel-input-field" type="number" id="inp-adm" placeholder="—" min="0" oninput="recalc()" />
+      </div>
+      <div class="funnel-input">
+        <div class="funnel-input-lbl">Confirmed</div>
+        <input class="funnel-input-field" type="number" id="inp-conf" placeholder="—" min="0" oninput="recalc()" />
+      </div>
+      <div class="funnel-input">
+        <div class="funnel-input-lbl">Enrolled</div>
+        <input class="funnel-input-field" type="number" id="inp-enr" placeholder="—" min="0" oninput="recalc()" />
+      </div>
+    </div>
+    <div class="growth-note" id="growth-note"></div>
+  </div>
+
+  <!-- Forecast KPI strip -->
+  <div class="metrics" id="kpi-strip">
+    <div class="metric"><div class="metric-lbl">Forecasted Inquiries</div><div class="metric-val" id="kpi0">—</div><div class="metric-delta nt" id="kpid0"></div></div>
+    <div class="metric"><div class="metric-lbl">Forecasted Applications</div><div class="metric-val" id="kpi1">—</div><div class="metric-delta nt" id="kpid1"></div></div>
+    <div class="metric"><div class="metric-lbl">Forecasted Admissions</div><div class="metric-val" id="kpi2">—</div><div class="metric-delta nt" id="kpid2"></div></div>
+    <div class="metric"><div class="metric-lbl">Forecasted Confirmed</div><div class="metric-val" id="kpi3">—</div><div class="metric-delta nt" id="kpid3"></div></div>
+    <div class="metric"><div class="metric-lbl">Forecasted Enrolled</div><div class="metric-val" id="kpi4" style="font-size:15px;line-height:1.3;">—</div><div class="metric-delta nt" id="kpid4"></div><div style="font-size:9px;color:var(--txl);margin-top:2px;" id="kpi4-basis"></div></div>
+  </div>
+
+  <!-- Forecast funnel bars -->
+  <div class="funnel-section">
+    <div class="section-hd">
+      Forecast by stage
+      <span id="snap-info" style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;"></span>
+    </div>
+    <div class="funnel-grid">
+      <div class="f-row">
+        <div></div><div></div>
+        <div class="col-hd">Current</div>
+        <div class="col-hd">Avg Remaining</div>
+        <div class="col-hd">Forecasted Final</div>
+        <div class="col-hd">Hist. Census Avg</div>
+        <div class="col-hd">Δ vs Avg</div>
+      </div>
+      <div class="f-row" id="frow-0">
+        <div class="f-lbl">Inquiry</div>
+        <div class="f-track"><div class="f-fill" id="fbar-0" style="width:100%;background:#2E1A42;"></div></div>
+        <div class="f-count" id="fcur-0">—</div>
+        <div class="f-hist"  id="frem-0">—</div>
+        <div class="f-forecast" id="ffc-0">—</div>
+        <div class="f-hist"  id="fhist-0">—</div>
+        <div class="f-delta" id="fdelta-0">—</div>
+      </div>
+      <div class="f-row" id="frow-1">
+        <div class="f-lbl">Application</div>
+        <div class="f-track"><div class="f-fill" id="fbar-1" style="width:0%;background:#4A2C6B;"></div></div>
+        <div class="f-count" id="fcur-1">—</div>
+        <div class="f-hist"  id="frem-1">—</div>
+        <div class="f-forecast" id="ffc-1">—</div>
+        <div class="f-hist"  id="fhist-1">—</div>
+        <div class="f-delta" id="fdelta-1">—</div>
+      </div>
+      <div class="f-row" id="frow-2">
+        <div class="f-lbl">Admitted</div>
+        <div class="f-track"><div class="f-fill" id="fbar-2" style="width:0%;background:#5D3880;"></div></div>
+        <div class="f-count" id="fcur-2">—</div>
+        <div class="f-hist"  id="frem-2">—</div>
+        <div class="f-forecast" id="ffc-2">—</div>
+        <div class="f-hist"  id="fhist-2">—</div>
+        <div class="f-delta" id="fdelta-2">—</div>
+      </div>
+      <div class="f-row" id="frow-3">
+        <div class="f-lbl">Confirmed</div>
+        <div class="f-track"><div class="f-fill" id="fbar-3" style="width:0%;background:#5A8C3C;"></div></div>
+        <div class="f-count" id="fcur-3">—</div>
+        <div class="f-hist"  id="frem-3">—</div>
+        <div class="f-forecast" id="ffc-3">—</div>
+        <div class="f-hist"  id="fhist-3">—</div>
+        <div class="f-delta" id="fdelta-3">—</div>
+      </div>
+      <div class="f-row" id="frow-4">
+        <div class="f-lbl">Enrolled</div>
+        <div class="f-track"><div class="f-fill" id="fbar-4" style="width:0%;background:#3A5C26;"></div></div>
+        <div class="f-count" id="fcur-4">—</div>
+        <div class="f-hist"  id="frem-4">—</div>
+        <div class="f-forecast" id="ffc-4" style="line-height:1.3;">—</div>
+        <div class="f-hist"  id="fhist-4">—</div>
+        <div class="f-delta" id="fdelta-4" style="line-height:1.3;">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conversion rates -->
+  <div class="conv-section">
+    <div class="section-hd">Conversion rates <span id="conv-window-note" style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;"></span></div>
+    <div class="conv-grid" id="conv-grid">
+      <div class="loading"><div class="spinner"></div>Loading...</div>
+    </div>
+  </div>
+
+  <!-- Charts: forecast vs history + trend -->
+  <div class="two-col">
+    <div class="chart-pane">
+      <div class="section-hd">Forecasted vs. historical census</div>
+      <div class="legend">
+        <span><span class="legend-sq" style="background:#8B6AAE;"></span>Historical avg</span>
+        <span><span class="legend-sq" style="background:#4A2C6B;"></span>This year forecast</span>
+      </div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="forecast-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-pane">
+      <div class="section-hd">Historical census — enrolled by term</div>
+      <div class="legend">
+        <span><span class="legend-sq" style="background:var(--fall);"></span>Fall</span>
+        <span><span class="legend-sq" style="background:var(--spring);"></span>Spring</span>
+        <span><span class="legend-sq" style="background:var(--summer);"></span>Summer</span>
+      </div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="trend-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historical tracking table -->
+  <div class="hist-section">
+    <div class="section-hd">Historical census data <span id="hist-term-note" style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;"></span></div>
+    <table class="hist-table" id="hist-table">
+      <thead>
+        <tr>
+          <th>Academic Year</th>
+          <th>Inquiries</th>
+          <th>Applications</th>
+          <th>Admissions</th>
+          <th>Confirmed</th>
+          <th>Enrolled</th>
+          <th>Inq→App</th>
+          <th>App→Adm</th>
+          <th>Adm→Conf</th>
+          <th>Conf→Enr</th>
+        </tr>
+      </thead>
+      <tbody id="hist-tbody">
+        <tr><td colspan="10" style="text-align:center;padding:20px;color:var(--txl);">Loading historical data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-bar">
+    <div class="footer-tx" id="footer-tx">Source: Supabase · enrollment_funnel_ay</div>
+    <a href="https://romkeymm.github.io/MercyU/admissions-funnel.html" class="footer-link">Admissions Funnel →</a>
+  </div>
+</div>
+
+<!-- Snapshot Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-hd">Log Forecast Snapshot</div>
+    <div class="modal-sub">Save today's funnel counts as a historical tracking point for future forecasting accuracy.</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Academic Year</label>
+        <select class="form-select" id="form-ay">
+          <option value="AY25-26">AY25-26</option>
+          <option value="AY26-27">AY26-27</option>
+          <option value="AY27-28">AY27-28</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Term</label>
+        <select class="form-select" id="form-term">
+          <option value="Fall">Fall</option>
+          <option value="Spring">Spring</option>
+          <option value="Summer">Summer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Snapshot Date</label>
+        <input class="form-input" type="date" id="form-date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Days to Census</label>
+        <input class="form-input" type="number" id="form-days" placeholder="e.g. 45" min="0" />
+        <div class="form-note">Approx. days remaining until census</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Inquiries</label>
+        <input class="form-input" type="number" id="form-inq" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Applications</label>
+        <input class="form-input" type="number" id="form-app" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Admissions</label>
+        <input class="form-input" type="number" id="form-adm" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmed</label>
+        <input class="form-input" type="number" id="form-conf" placeholder="0" min="0" />
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Enrolled</label>
+        <input class="form-input" type="number" id="form-enr" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <div class="save-msg" id="save-msg"></div>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="save-btn" onclick="saveSnapshot()">Save to Supabase</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://zeidgpqiczdwnuupnozm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWRncHFpY3pkd251dXBub3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjU5NzIsImV4cCI6MjA5MjAwMTk3Mn0.VKRADdN5pdLAbYOS099e1yVdAkh2RY2tUo00119lciM';
+const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+
+const stageFields  = ['inquiries','applications','admissions','confirmed','enrolled'];
+const stageLabels  = ['Inquiry','Application','Admitted','Confirmed','Enrolled'];
+const barColors    = ['#2E1A42','#4A2C6B','#5D3880','#5A8C3C','#3A5C26'];
+const convLabels   = ['Inquiry → Application','Application → Admission','Admission → Confirmed','Confirmed → Enrolled'];
+
+let censusData  = [];   // merged: hardcoded + Supabase live
+let trackData   = [];   // from enrollment_funnel_tracking
+let curTerm     = 'Fall';
+let windowYears = 3;
+let forecastChart = null;
+let trendChart    = null;
+
+const fmt  = n => (n == null || n === '') ? '—' : Math.round(n).toLocaleString();
+const pct  = (a, b) => (a && b) ? (a / b * 100).toFixed(0) + '%' : '—';
+const sign = n => n > 0 ? '+' : '';
+
+// ── Hardcoded historical census data (sourced from Funnel Analysis spreadsheets) ──
+// Format: { academic_year, term, inquiries, applications, admissions, confirmed, enrolled }
+const SEED_CENSUS = [
+  // ── FALL ──────────────────────────────────────────────────────────────────
+  { academic_year:'AY17-18', term:'Fall', inquiries:2625, applications:1070, admissions:543, confirmed:294, enrolled:259 },
+  { academic_year:'AY18-19', term:'Fall', inquiries:3736, applications:1398, admissions:708, confirmed:387, enrolled:325 },
+  { academic_year:'AY19-20', term:'Fall', inquiries:2537, applications:1369, admissions:629, confirmed:344, enrolled:284 },
+  { academic_year:'AY20-21', term:'Fall', inquiries:1476, applications:1341, admissions:656, confirmed:346, enrolled:309 },
+  { academic_year:'AY21-22', term:'Fall', inquiries:2107, applications:1392, admissions:604, confirmed:361, enrolled:294 },
+  { academic_year:'AY22-23', term:'Fall', inquiries:null, applications:1318, admissions:624, confirmed:333, enrolled:292 },
+  { academic_year:'AY23-24', term:'Fall', inquiries:2106, applications:1837, admissions:856, confirmed:458, enrolled:376 },
+  // ── SPRING ────────────────────────────────────────────────────────────────
+  { academic_year:'AY16-17', term:'Spring', inquiries:721,  applications:376, admissions:158, confirmed:106, enrolled:93  },
+  { academic_year:'AY17-18', term:'Spring', inquiries:626,  applications:369, admissions:143, confirmed:77,  enrolled:66  },
+  { academic_year:'AY18-19', term:'Spring', inquiries:988,  applications:463, admissions:214, confirmed:124, enrolled:110 },
+  { academic_year:'AY19-20', term:'Spring', inquiries:1037, applications:637, admissions:287, confirmed:153, enrolled:128 },
+  { academic_year:'AY20-21', term:'Spring', inquiries:1000, applications:841, admissions:336, confirmed:186, enrolled:151 },
+  { academic_year:'AY21-22', term:'Spring', inquiries:739,  applications:729, admissions:283, confirmed:140, enrolled:113 },
+  { academic_year:'AY22-23', term:'Spring', inquiries:1037, applications:637, admissions:287, confirmed:153, enrolled:128 },
+  { academic_year:'AY23-24', term:'Spring', inquiries:729,  applications:655, admissions:263, confirmed:149, enrolled:128 },
+  { academic_year:'AY24-25', term:'Spring', inquiries:1054, applications:988, admissions:354, confirmed:190, enrolled:159 },
+  // ── SUMMER ────────────────────────────────────────────────────────────────
+  { academic_year:'AY20-21', term:'Summer', inquiries:743, applications:616, admissions:272, confirmed:130, enrolled:108 },
+  { academic_year:'AY21-22', term:'Summer', inquiries:616, applications:563, admissions:232, confirmed:103, enrolled:77  },
+  { academic_year:'AY22-23', term:'Summer', inquiries:478, applications:498, admissions:248, confirmed:130, enrolled:99  },
+  { academic_year:'AY23-24', term:'Summer', inquiries:982, applications:917, admissions:426, confirmed:193, enrolled:164 },
+];
+
+// ── Hardcoded tracking-point snapshots (mid-cycle counts from spreadsheets) ──
+const SEED_TRACKING = [
+  // Spring tracking points (date, academic_year, term, inq, app, adm, conf)
+  { snapshot_date:'2017-01-18', academic_year:'AY16-17', term:'Spring', inquiries:166,  applications:96,  admissions:36,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2017-03-18', academic_year:'AY16-17', term:'Spring', inquiries:310,  applications:184, admissions:69,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2017-04-21', academic_year:'AY16-17', term:'Spring', inquiries:594,  applications:318, admissions:107, confirmed:16,  enrolled:null },
+  { snapshot_date:'2018-01-18', academic_year:'AY17-18', term:'Spring', inquiries:168,  applications:90,  admissions:33,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2018-03-18', academic_year:'AY17-18', term:'Spring', inquiries:333,  applications:180, admissions:59,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2018-04-21', academic_year:'AY17-18', term:'Spring', inquiries:454,  applications:268, admissions:93,  confirmed:26,  enrolled:null },
+  { snapshot_date:'2019-01-18', academic_year:'AY18-19', term:'Spring', inquiries:195,  applications:115, admissions:49,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2019-03-18', academic_year:'AY18-19', term:'Spring', inquiries:404,  applications:260, admissions:103, confirmed:0,   enrolled:null },
+  { snapshot_date:'2019-04-21', academic_year:'AY18-19', term:'Spring', inquiries:683,  applications:361, admissions:139, confirmed:0,   enrolled:null },
+  { snapshot_date:'2020-01-18', academic_year:'AY19-20', term:'Spring', inquiries:381,  applications:171, admissions:73,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2020-03-18', academic_year:'AY19-20', term:'Spring', inquiries:647,  applications:361, admissions:154, confirmed:0,   enrolled:null },
+  { snapshot_date:'2020-04-21', academic_year:'AY19-20', term:'Spring', inquiries:838,  applications:502, admissions:218, confirmed:3,   enrolled:null },
+  { snapshot_date:'2021-01-18', academic_year:'AY20-21', term:'Spring', inquiries:254,  applications:216, admissions:67,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2021-03-18', academic_year:'AY20-21', term:'Spring', inquiries:522,  applications:466, admissions:190, confirmed:0,   enrolled:null },
+  { snapshot_date:'2021-04-21', academic_year:'AY20-21', term:'Spring', inquiries:725,  applications:647, admissions:246, confirmed:1,   enrolled:null },
+  { snapshot_date:'2022-01-18', academic_year:'AY21-22', term:'Spring', inquiries:374,  applications:181, admissions:87,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2022-03-18', academic_year:'AY21-22', term:'Spring', inquiries:520,  applications:419, admissions:164, confirmed:3,   enrolled:null },
+  { snapshot_date:'2022-04-21', academic_year:'AY21-22', term:'Spring', inquiries:621,  applications:543, admissions:210, confirmed:3,   enrolled:null },
+  { snapshot_date:'2023-01-18', academic_year:'AY22-23', term:'Spring', inquiries:381,  applications:171, admissions:73,  confirmed:0,   enrolled:null },
+  { snapshot_date:'2023-03-18', academic_year:'AY22-23', term:'Spring', inquiries:647,  applications:361, admissions:154, confirmed:0,   enrolled:null },
+  { snapshot_date:'2023-04-21', academic_year:'AY22-23', term:'Spring', inquiries:838,  applications:502, admissions:218, confirmed:3,   enrolled:null },
+  // Summer tracking points
+  { snapshot_date:'2021-01-18', academic_year:'AY20-21', term:'Summer', inquiries:419, applications:378, admissions:183, confirmed:0,   enrolled:null },
+  { snapshot_date:'2021-03-15', academic_year:'AY20-21', term:'Summer', inquiries:656, applications:572, admissions:244, confirmed:77,  enrolled:null },
+  { snapshot_date:'2022-01-18', academic_year:'AY21-22', term:'Summer', inquiries:431, applications:372, admissions:147, confirmed:1,   enrolled:null },
+  { snapshot_date:'2022-03-15', academic_year:'AY21-22', term:'Summer', inquiries:530, applications:506, admissions:210, confirmed:39,  enrolled:null },
+  { snapshot_date:'2023-01-18', academic_year:'AY22-23', term:'Summer', inquiries:218, applications:264, admissions:127, confirmed:6,   enrolled:null },
+  { snapshot_date:'2023-03-15', academic_year:'AY22-23', term:'Summer', inquiries:380, applications:432, admissions:212, confirmed:3,   enrolled:null },
+  { snapshot_date:'2024-01-18', academic_year:'AY23-24', term:'Summer', inquiries:700, applications:595, admissions:255, confirmed:5,   enrolled:null },
+  { snapshot_date:'2024-03-15', academic_year:'AY23-24', term:'Summer', inquiries:873, applications:810, admissions:349, confirmed:null,enrolled:null },
+  // Fall tracking points (from FA25 spreadsheet)
+  { snapshot_date:'2024-07-29', academic_year:'AY24-25', term:'Fall', inquiries:1514, applications:917, admissions:399, confirmed:0,   enrolled:null },
+  { snapshot_date:'2024-05-17', academic_year:'AY24-25', term:'Fall', inquiries:1916, applications:1578,admissions:697, confirmed:233, enrolled:null },
+  // Current AY25-26 in-progress (Summer)
+  { snapshot_date:'2026-01-10', academic_year:'AY25-26', term:'Summer', inquiries:null, applications:668, admissions:407, confirmed:78,  enrolled:null },
+];
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function fetchAll() {
+  // Start immediately with seed data so the page is useful even before Supabase responds
+  censusData = [...SEED_CENSUS];
+  trackData  = [...SEED_TRACKING];
+  buildTrendChart();
+  recalc();
+
+  setStatus('loading', 'Syncing with Supabase...');
+  try {
+    const [ayRes, trackRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: HEADERS }),
+      fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_tracking?select=*&order=academic_year,snapshot_date`, { headers: HEADERS })
+        .catch(() => ({ ok: true, json: async () => [] }))
+    ]);
+
+    if (ayRes.ok) {
+      const liveAY = await ayRes.json();
+      if (liveAY.length > 0) {
+        // Merge: live data wins over seed data for same academic_year+term
+        const liveKeys = new Set(liveAY.map(r => `${r.academic_year}|${r.term||'Annual'}`));
+        const seedFiltered = SEED_CENSUS.filter(r => !liveKeys.has(`${r.academic_year}|${r.term||'Annual'}`));
+        censusData = [...seedFiltered, ...liveAY];
+      }
+    }
+
+    if (trackRes.ok) {
+      const liveTrack = await trackRes.json();
+      if (liveTrack.length > 0) {
+        const liveKeys = new Set(liveTrack.map(r => `${r.academic_year}|${r.term}|${r.snapshot_date}`));
+        const seedFiltered = SEED_TRACKING.filter(r => !liveKeys.has(`${r.academic_year}|${r.term}|${r.snapshot_date}`));
+        trackData = [...seedFiltered, ...liveTrack];
+      }
+    }
+
+    const n = censusData.length;
+    setStatus('live', `Live · ${n} census records · ${trackData.length} tracking snapshots`);
+    document.getElementById('footer-tx').textContent =
+      `Source: Supabase + spreadsheet data · ${n} census records · Last synced ${new Date().toLocaleTimeString()}`;
+
+    // Rebuild charts with merged data
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
+    buildTrendChart();
+    recalc();
+  } catch(e) {
+    setStatus('live', `Seed data · ${censusData.length} records (Supabase offline)`);
+    document.getElementById('footer-tx').textContent =
+      `Source: Spreadsheet data · ${censusData.length} census records · Supabase sync failed`;
+    console.warn('Supabase sync failed, using seed data:', e);
+  }
+}
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot' + (state === 'live' ? ' live' : '');
+  dot.style.background = state === 'live' ? '#3A6D11' : state === 'error' ? '#791F1F' : '#999';
+  document.getElementById('status-tx').textContent = msg;
+}
+
+// ── Term / window controls ────────────────────────────────────────────────────
+function setTerm(term, btn) {
+  curTerm = term;
+  ['Fall','Spring','Summer'].forEach(t => {
+    const b = document.getElementById('btn-' + t);
+    if (b) b.className = 'seg-btn' + (t === term ? ' a-' + t.toLowerCase() : '');
+  });
+  recalc();
+}
+
+function setWindow(years, btn) {
+  windowYears = years;
+  document.querySelectorAll('#window-tabs .seg-btn').forEach(b => {
+    b.className = 'seg-btn' + (b === btn ? ' a-window' : '');
+  });
+  recalc();
+}
+
+// ── Core: get census rows for current term ────────────────────────────────────
+function getCensusRows() {
+  let rows = censusData.filter(r => r.term === curTerm);
+  // Fallback: if no term-specific rows, use annual totals
+  if (!rows.length) rows = censusData.filter(r => !r.term || r.term === 'Annual');
+  return rows.sort((a, b) => a.academic_year > b.academic_year ? 1 : -1);
+}
+
+// ── Get tracking rows for current term ───────────────────────────────────────
+function getTrackingRows() {
+  return trackData
+    .filter(r => r.term === curTerm)
+    .sort((a, b) => a.snapshot_date > b.snapshot_date ? 1 : -1);
+}
+
+// ── Find closest historical tracking snapshot to today's date ────────────────
+// Returns {census_row, tracking_row} pairs for years that have a snapshot near today's day-of-year
+function getHistoricalLifts(inputs) {
+  const today = new Date();
+  const todayDOY = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
+
+  const windowCensus = getWindowRows();
+  const lifts = []; // array of per-year remaining lift objects
+
+  for (const censusRow of windowCensus) {
+    const ay = censusRow.academic_year;
+    // Find tracking snapshots for this ay+term
+    const snapshots = trackData
+      .filter(r => r.academic_year === ay && r.term === curTerm)
+      .sort((a, b) => a.snapshot_date > b.snapshot_date ? 1 : -1);
+
+    if (!snapshots.length) continue;
+
+    // Find snapshot closest to today's day-of-year
+    const closest = snapshots.reduce((best, s) => {
+      const d = new Date(s.snapshot_date);
+      const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+      const diff = Math.abs(doy - todayDOY);
+      if (!best || diff < best.diff) return { row: s, diff };
+      return best;
+    }, null);
+
+    if (!closest || closest.diff > 60) continue; // only use if within 60 days of today's DOY
+
+    // Calculate lift = census final - snapshot count (for each stage)
+    const lift = {};
+    stageFields.forEach(f => {
+      const snap = closest.row[f];
+      const final = censusRow[f];
+      lift[f] = (snap != null && final != null) ? Math.max(0, final - snap) : null;
+    });
+    lifts.push(lift);
+  }
+
+  return lifts;
+}
+
+function getWindowRows() {
+  const all = getCensusRows();
+  if (windowYears >= 99) return all;
+  return all.slice(-windowYears);
+}
+
+// ── Average of a field across rows (ignoring nulls) ───────────────────────────
+function avg(rows, field) {
+  const vals = rows.map(r => r[field]).filter(v => v != null && v !== '');
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+// ── Get current inputs ────────────────────────────────────────────────────────
+function getCurrentInputs() {
+  return stageFields.map((_, i) => {
+    const ids = ['inp-inq','inp-app','inp-adm','inp-conf','inp-enr'];
+    const v = parseFloat(document.getElementById(ids[i]).value);
+    return isNaN(v) ? null : v;
+  });
+}
+
+// ── Main recalc ───────────────────────────────────────────────────────────────
+function recalc() {
+  const windowRows = getWindowRows();
+  const allRows    = getCensusRows();
+  const inputs     = getCurrentInputs();
+  const hasInput   = inputs.some(v => v !== null);
+
+  // Historical averages (census finals) for window
+  const histAvgs = stageFields.map(f => avg(windowRows, f));
+  const allAvgs  = stageFields.map(f => avg(allRows, f));
+
+  // Attempt tracking-point-based lift (more accurate when we have date-matched snapshots)
+  const historicalLifts = getHistoricalLifts(inputs);
+  const hasTrackingLifts = historicalLifts.length >= 1;
+
+  // Remaining lift per stage:
+  // If we have tracking-point matches → use avg(census - snapshot at this DOY)
+  // Otherwise → use avg(census) - current (conservative floor at 0)
+  const remaining = stageFields.map((f, i) => {
+    if (!hasInput || inputs[i] === null) return histAvgs[i];
+
+    if (hasTrackingLifts) {
+      const trackLifts = historicalLifts.map(l => l[f]).filter(v => v != null);
+      if (trackLifts.length) {
+        return trackLifts.reduce((a, b) => a + b, 0) / trackLifts.length;
+      }
+    }
+    // Fallback: histAvg - current
+    return histAvgs[i] != null ? Math.max(0, histAvgs[i] - inputs[i]) : null;
+  });
+
+  const forecasted = stageFields.map((_, i) => {
+    if (inputs[i] === null) return hasInput ? null : histAvgs[i];
+    if (remaining[i] === null) return inputs[i];
+    return inputs[i] + remaining[i];
+  });
+
+  // ── Enrolled range: derived from conversion rates off admitted + confirmed ──
+  // Uses historical adm→enr and conf→enr rates from the window years
+  // Low  = forecasted_confirmed × avg(conf→enr rate)          [conservative — only convert who confirmed]
+  // Mid  = forecasted_confirmed × avg(conf→enr rate)          [same as low, point estimate]
+  // High = forecasted_admitted  × avg(adm→enr rate)           [optimistic — all admits who could enroll]
+  // The range is: Low–High, with Mid shown as the primary forecast
+  const enrRange = (() => {
+    const fcAdm  = forecasted[2]; // forecasted admitted
+    const fcConf = forecasted[3]; // forecasted confirmed
+
+    // Compute per-year rates from window rows
+    const confEnrRates = windowRows
+      .map(r => (r.confirmed && r.enrolled && r.confirmed > 0) ? r.enrolled / r.confirmed : null)
+      .filter(v => v != null);
+    const admEnrRates = windowRows
+      .map(r => (r.admissions && r.enrolled && r.admissions > 0) ? r.enrolled / r.admissions : null)
+      .filter(v => v != null);
+
+    if (!confEnrRates.length && !admEnrRates.length) return null;
+
+    const avgConfEnr = confEnrRates.length
+      ? confEnrRates.reduce((a, b) => a + b, 0) / confEnrRates.length : null;
+    const minConfEnr = confEnrRates.length ? Math.min(...confEnrRates) : null;
+    const maxConfEnr = confEnrRates.length ? Math.max(...confEnrRates) : null;
+    const avgAdmEnr  = admEnrRates.length
+      ? admEnrRates.reduce((a, b) => a + b, 0) / admEnrRates.length : null;
+    const maxAdmEnr  = admEnrRates.length ? Math.max(...admEnrRates) : null;
+
+    // Low: forecasted_confirmed × min historical conf→enr rate
+    const low  = (fcConf != null && minConfEnr != null) ? Math.round(fcConf * minConfEnr) : null;
+    // Mid: forecasted_confirmed × avg historical conf→enr rate  (primary point estimate)
+    const mid  = (fcConf != null && avgConfEnr != null) ? Math.round(fcConf * avgConfEnr) : null;
+    // High: forecasted_admitted × avg historical adm→enr rate   (optimistic ceiling)
+    const high = (fcAdm  != null && avgAdmEnr  != null) ? Math.round(fcAdm  * avgAdmEnr)  : null;
+
+    return {
+      low, mid, high,
+      avgConfEnr, avgAdmEnr,
+      confEnrRateStr: avgConfEnr != null ? (avgConfEnr * 100).toFixed(1) + '%' : '—',
+      admEnrRateStr:  avgAdmEnr  != null ? (avgAdmEnr  * 100).toFixed(1) + '%' : '—',
+      nConf: confEnrRates.length,
+      nAdm:  admEnrRates.length,
+    };
+  })();
+
+  // Override forecasted enrolled with mid-point estimate for chart consistency
+  if (enrRange && enrRange.mid != null) forecasted[4] = enrRange.mid;
+
+  // Update header
+  const wLabel = windowYears >= 99 ? 'All-Time' : `${windowYears}-Year Avg`;
+  document.getElementById('view-pill').textContent = `${curTerm} · ${wLabel}`;
+  document.getElementById('hdr-sub').textContent =
+    `${curTerm} forecast · ${wLabel} trend window · ${windowRows.length} year${windowRows.length !== 1 ? 's' : ''} of data`;
+  document.getElementById('snap-info').textContent =
+    `${curTerm} · ${wLabel} · ${windowRows.length} census years`;
+  document.getElementById('hist-term-note').textContent =
+    `${curTerm} term · ${allRows.length} years`;
+  document.getElementById('conv-window-note').textContent =
+    `— ${wLabel}`;
+  document.getElementById('growth-note').textContent = hasInput
+    ? `Avg remaining lift based on ${windowRows.length} years of ${curTerm} census data (${wLabel} window)${hasTrackingLifts ? ` · ${historicalLifts.length} date-matched tracking snapshots used` : ' · no date-matched snapshots — using census avg lift'}. Forecast = current + expected remaining growth.`
+    : `Enter today's funnel counts above to generate a forecast.`;
+
+  // KPI strip (stages 0–3 standard; stage 4 = enrolled range)
+  stageFields.slice(0, 4).forEach((_, i) => {
+    const fc = forecasted[i];
+    const ha = histAvgs[i];
+    const delta = (fc != null && ha != null) ? fc - ha : null;
+    document.getElementById(`kpi${i}`).textContent = fc != null ? fmt(fc) : '—';
+    const del = document.getElementById(`kpid${i}`);
+    if (delta != null) {
+      del.textContent = sign(delta) + fmt(Math.abs(delta)) + ' vs hist avg';
+      del.className = 'metric-delta ' + (delta >= 0 ? 'up' : 'dn');
+    } else {
+      del.textContent = ha != null ? `Hist avg: ${fmt(ha)}` : '';
+      del.className = 'metric-delta nt';
+    }
+  });
+
+  // Enrolled KPI — range display
+  const kpi4el    = document.getElementById('kpi4');
+  const kpid4el   = document.getElementById('kpid4');
+  const kpi4basis = document.getElementById('kpi4-basis');
+  if (enrRange && (enrRange.low != null || enrRange.mid != null)) {
+    const showLow  = enrRange.low  != null ? fmt(enrRange.low)  : '—';
+    const showMid  = enrRange.mid  != null ? fmt(enrRange.mid)  : '—';
+    const showHigh = enrRange.high != null ? fmt(enrRange.high) : '—';
+    kpi4el.innerHTML = `<span style="font-size:11px;color:var(--txl);font-weight:400;">low </span>${showLow}<br><span style="font-size:11px;color:var(--txl);font-weight:400;">mid </span>${showMid}<br><span style="font-size:11px;color:var(--txl);font-weight:400;">high </span>${showHigh}`;
+    kpi4el.style.fontSize = '16px';
+    kpi4el.style.lineHeight = '1.35';
+    const ha = histAvgs[4];
+    const delta = (enrRange.mid != null && ha != null) ? enrRange.mid - ha : null;
+    if (delta != null) {
+      kpid4el.textContent = sign(delta) + fmt(Math.abs(delta)) + ' vs hist avg';
+      kpid4el.className = 'metric-delta ' + (delta >= 0 ? 'up' : 'dn');
+    } else {
+      kpid4el.textContent = ha != null ? `Hist avg: ${fmt(ha)}` : '';
+      kpid4el.className = 'metric-delta nt';
+    }
+    kpi4basis.textContent = `Conf→Enr ${enrRange.confEnrRateStr} avg · Adm→Enr ${enrRange.admEnrRateStr} avg`;
+  } else {
+    kpi4el.textContent = '—';
+    kpi4el.style.fontSize = '';
+    kpid4el.textContent = '';
+    kpi4basis.textContent = '';
+  }
+
+  // Funnel bars (stages 0–3 standard)
+  const topFc = forecasted[0] || histAvgs[0] || 1;
+  stageFields.slice(0, 4).forEach((_, i) => {
+    const cur = inputs[i];
+    const rem = remaining[i];
+    const fc  = forecasted[i];
+    const ha  = histAvgs[i];
+    const pctW = fc != null ? Math.max((fc / topFc) * 100, 4) : 0;
+
+    const bar = document.getElementById(`fbar-${i}`);
+    if (bar) bar.style.width = pctW + '%';
+
+    document.getElementById(`fcur-${i}`).textContent    = cur != null ? fmt(cur) : '—';
+    document.getElementById(`frem-${i}`).textContent    = rem != null ? '+' + fmt(rem) : '—';
+    document.getElementById(`ffc-${i}`).textContent     = fc  != null ? fmt(fc)  : '—';
+    document.getElementById(`fhist-${i}`).textContent   = ha  != null ? fmt(ha)  : '—';
+
+    const delta = (fc != null && ha != null) ? Math.round(fc - ha) : null;
+    const dcell = document.getElementById(`fdelta-${i}`);
+    if (delta != null) {
+      dcell.textContent = sign(delta) + fmt(Math.abs(delta));
+      dcell.className = 'f-delta ' + (delta >= 0 ? 'on-track' : delta >= -ha * 0.05 ? 'watch' : 'off-track');
+    } else {
+      dcell.textContent = '—';
+      dcell.className = 'f-delta nt';
+    }
+  });
+
+  // Enrolled funnel row — range display
+  {
+    const cur4 = inputs[4];
+    const ha4  = histAvgs[4];
+    const pctW4 = enrRange && enrRange.mid != null ? Math.max((enrRange.mid / topFc) * 100, 4) : 0;
+    const bar4 = document.getElementById('fbar-4');
+    if (bar4) bar4.style.width = pctW4 + '%';
+
+    document.getElementById('fcur-4').textContent  = cur4 != null ? fmt(cur4) : '—';
+    document.getElementById('frem-4').textContent  = '↓ range';
+    document.getElementById('fhist-4').textContent = ha4 != null ? fmt(ha4) : '—';
+
+    const ffc4 = document.getElementById('ffc-4');
+    const fdelta4 = document.getElementById('fdelta-4');
+    if (enrRange && (enrRange.low != null || enrRange.mid != null)) {
+      const lo = enrRange.low  != null ? fmt(enrRange.low)  : '—';
+      const md = enrRange.mid  != null ? fmt(enrRange.mid)  : '—';
+      const hi = enrRange.high != null ? fmt(enrRange.high) : '—';
+      ffc4.innerHTML =
+        `<div class="f-range">` +
+        `<div class="f-range-num">${lo} – ${hi}</div>` +
+        `<div class="f-range-basis">mid: ${md}</div>` +
+        `</div>`;
+
+      // Delta: mid vs hist avg
+      const delta4 = (enrRange.mid != null && ha4 != null) ? Math.round(enrRange.mid - ha4) : null;
+      if (delta4 != null) {
+        fdelta4.innerHTML =
+          `<div style="font-size:12px;font-weight:600;">${sign(delta4)}${fmt(Math.abs(delta4))}</div>` +
+          `<div style="font-size:9px;color:var(--txl);">mid vs avg</div>`;
+        fdelta4.className = 'f-delta ' + (delta4 >= 0 ? 'on-track' : delta4 >= -ha4 * 0.05 ? 'watch' : 'off-track');
+      } else {
+        fdelta4.textContent = '—';
+        fdelta4.className = 'f-delta nt';
+      }
+    } else {
+      ffc4.textContent   = '—';
+      fdelta4.textContent = '—';
+      fdelta4.className  = 'f-delta nt';
+    }
+  }
+
+  // Conversion rates
+  renderConversions(inputs, windowRows);
+
+  // Forecast vs history chart
+  updateForecastChart(forecasted, histAvgs);
+
+  // Historical table
+  renderHistTable(allRows, histAvgs);
+}
+
+// ── Conversion rates ──────────────────────────────────────────────────────────
+function renderConversions(inputs, windowRows) {
+  const pairs = [[0,1],[1,2],[2,3],[3,4]];
+
+  // Current rates from inputs
+  const curRates = pairs.map(([a,b]) => {
+    const va = inputs[a], vb = inputs[b];
+    return (va && vb && va > 0) ? vb / va : null;
+  });
+
+  // Historical rates per year then average
+  const histRatesPerYear = windowRows.map(r => {
+    return pairs.map(([a,b]) => {
+      const va = r[stageFields[a]], vb = r[stageFields[b]];
+      return (va && vb && va > 0) ? vb / va : null;
+    });
+  });
+
+  const avgHistRates = pairs.map((_, pi) => {
+    const vals = histRatesPerYear.map(yr => yr[pi]).filter(v => v != null);
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  });
+
+  const grid = document.getElementById('conv-grid');
+  grid.innerHTML = pairs.map((_, i) => {
+    const cur  = curRates[i];
+    const hist = avgHistRates[i];
+    const diff = (cur != null && hist != null) ? cur - hist : null;
+    const pctStr = cur != null ? (cur * 100).toFixed(1) + '%' : '—';
+    const histStr = hist != null ? (hist * 100).toFixed(1) + '%' : '—';
+    let statusClass = '', statusLabel = '';
+    if (diff != null) {
+      if (diff >= 0) { statusClass = 'good'; statusLabel = '↑ Above avg'; }
+      else if (diff >= -0.03) { statusClass = 'warn'; statusLabel = '→ Near avg'; }
+      else { statusClass = 'bad'; statusLabel = '↓ Below avg'; }
+    }
+    return `<div class="conv-card">
+      <div class="conv-label">${convLabels[i]}</div>
+      <div class="conv-rate">${pctStr}</div>
+      <div class="conv-hist">Hist avg: <span>${histStr}</span>${diff != null ? ` &nbsp;<span style="color:${diff>=0?'var(--up)':'var(--dn)'}">${sign(diff)}${(diff*100).toFixed(1)}pp</span>` : ''}</div>
+      ${statusLabel ? `<div class="conv-status ${statusClass}">${statusLabel}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Forecast vs history bar chart ────────────────────────────────────────────
+function updateForecastChart(forecasted, histAvgs) {
+  const labels = stageLabels;
+  if (!forecastChart) {
+    const ctx = document.getElementById('forecast-chart').getContext('2d');
+    forecastChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label:'Historical avg', data: histAvgs, backgroundColor:'#8B6AAE', borderRadius:3 },
+          { label:'Forecast',       data: forecasted, backgroundColor:'#4A2C6B', borderRadius:3 },
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ ticks:{ font:{size:10} }, grid:{ display:false } },
+          y:{ ticks:{ font:{size:10} }, grid:{ color:'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+  } else {
+    forecastChart.data.datasets[0].data = histAvgs;
+    forecastChart.data.datasets[1].data = forecasted;
+    forecastChart.update();
+  }
+}
+
+// ── Trend chart — enrolled over all AYs by term ───────────────────────────────
+function buildTrendChart() {
+  // Collect all unique academic years across all terms
+  const aySet = [...new Set(censusData.map(r => r.academic_year))].sort();
+
+  const forTerm = t => aySet.map(ay => {
+    const row = censusData.find(r => r.academic_year === ay && r.term === t);
+    return row ? (row.enrolled ?? null) : null;
+  });
+
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: aySet.map(ay => ay.replace('AY','').replace('-','–')),
+      datasets: [
+        { label:'Fall',   data: forTerm('Fall'),   backgroundColor:'#185FA5', borderRadius:3 },
+        { label:'Spring', data: forTerm('Spring'), backgroundColor:'#5A8C3C', borderRadius:3 },
+        { label:'Summer', data: forTerm('Summer'), backgroundColor:'#BA7517', borderRadius:3 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ stacked:true, ticks:{ font:{size:9}, autoSkip:false }, grid:{ display:false } },
+        y:{ stacked:true, ticks:{ font:{size:10} }, grid:{ color:'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+// ── Historical table ──────────────────────────────────────────────────────────
+function renderHistTable(rows, avgRow) {
+  const tbody = document.getElementById('hist-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--txl);">No historical data found for this term.</td></tr>';
+    return;
+  }
+
+  const makeRow = (label, r, cls) => {
+    const [inq, app, adm, conf, enr] = stageFields.map(f => r[f]);
+    return `<tr class="${cls}">
+      <td>${label}</td>
+      <td>${fmt(inq)}</td><td>${fmt(app)}</td><td>${fmt(adm)}</td>
+      <td>${fmt(conf)}</td><td>${fmt(enr)}</td>
+      <td>${pct(app,inq)}</td><td>${pct(adm,app)}</td>
+      <td>${pct(conf,adm)}</td><td>${pct(enr,conf)}</td>
+    </tr>`;
+  };
+
+  const rowsHtml = rows.map(r => makeRow(r.academic_year, r, '')).join('');
+
+  // Avg row
+  const avgObj = {};
+  stageFields.forEach((f, i) => avgObj[f] = avgRow[i]);
+  const wLabel = windowYears >= 99 ? 'All-Time Avg' : `${windowYears}-Yr Avg`;
+  const avgHtml = makeRow(wLabel, avgObj, 'avg-row');
+
+  tbody.innerHTML = rowsHtml + avgHtml;
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const windowRows = getWindowRows();
+  const inputs     = getCurrentInputs();
+  const histAvgs   = stageFields.map(f => avg(windowRows, f));
+  const remaining  = stageFields.map((_, i) => inputs[i] != null && histAvgs[i] != null ? Math.max(0, histAvgs[i] - inputs[i]) : null);
+  const forecasted = stageFields.map((_, i) => inputs[i] != null ? (inputs[i] + (remaining[i] || 0)) : histAvgs[i]);
+
+  const header = ['Stage','Current','Avg Remaining','Forecasted Final','Historical Avg','Delta vs Avg'];
+  const dataRows = stageLabels.map((lbl, i) => [
+    lbl,
+    inputs[i] ?? '',
+    remaining[i] != null ? Math.round(remaining[i]) : '',
+    forecasted[i] != null ? Math.round(forecasted[i]) : '',
+    histAvgs[i] != null ? Math.round(histAvgs[i]) : '',
+    (forecasted[i] != null && histAvgs[i] != null) ? Math.round(forecasted[i] - histAvgs[i]) : ''
+  ]);
+  const csv = [header, ...dataRows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MercyU_Forecast_${curTerm}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── Snapshot Modal ────────────────────────────────────────────────────────────
+function openModal() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('form-date').value = today;
+  document.getElementById('form-term').value = curTerm;
+  // Pre-fill from inputs
+  const ids = ['form-inq','form-app','form-adm','form-conf','form-enr'];
+  const inputIds = ['inp-inq','inp-app','inp-adm','inp-conf','inp-enr'];
+  ids.forEach((id, i) => {
+    const v = document.getElementById(inputIds[i]).value;
+    document.getElementById(id).value = v || '';
+  });
+  document.getElementById('save-msg').textContent = '';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+async function saveSnapshot() {
+  const btn = document.getElementById('save-btn');
+  const msg = document.getElementById('save-msg');
+  btn.disabled = true;
+  msg.className = 'save-msg';
+  msg.textContent = 'Saving...';
+
+  const payload = {
+    academic_year: document.getElementById('form-ay').value,
+    term:          document.getElementById('form-term').value,
+    snapshot_date: document.getElementById('form-date').value,
+    days_to_census: parseInt(document.getElementById('form-days').value) || null,
+    inquiries:    parseInt(document.getElementById('form-inq').value)  || null,
+    applications: parseInt(document.getElementById('form-app').value)  || null,
+    admissions:   parseInt(document.getElementById('form-adm').value)  || null,
+    confirmed:    parseInt(document.getElementById('form-conf').value) || null,
+    enrolled:     parseInt(document.getElementById('form-enr').value)  || null,
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_tracking`, {
+      method: 'POST',
+      headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      // Table might not exist yet — show helpful message
+      throw new Error(err.includes('relation') ? 'enrollment_funnel_tracking table not found. Run the CREATE TABLE script in Supabase first.' : err.substring(0,80));
+    }
+    trackData.push(payload);
+    msg.className = 'save-msg success';
+    msg.textContent = '✓ Snapshot saved!';
+    setTimeout(closeModal, 1500);
+  } catch(e) {
+    msg.className = 'save-msg error';
+    msg.textContent = '✗ ' + e.message;
+    console.error(e);
+  }
+  btn.disabled = false;
+}
+
+// Init
+document.getElementById('form-date') && (document.getElementById('form-date').value = new Date().toISOString().slice(0,10));
+fetchAll();
+</script>
+</body>
+</html>
