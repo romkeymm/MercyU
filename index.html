@@ -283,7 +283,7 @@
   <div class="metrics">
     <div class="metric">
       <div class="metric-val placeholder" id="m-total-enr">—</div>
-      <div class="metric-lbl">Total Enrollment</div>
+      <div class="metric-lbl" id="m-total-enr-lbl">Total Enrollment</div>
       <div class="metric-note">Pulls from Enrollment dashboard</div>
     </div>
     <div class="metric">
@@ -585,9 +585,44 @@
 
   async function loadKPIs() {
     try {
-      const res = await fetch(`${SB_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: SB_HDR });
-      const rows = res.ok ? await res.json() : [];
+      // ── Fetch both data sources in parallel ──
+      const [ayRes, reconRes] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: SB_HDR }),
+        fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=academic_year,transition_type,official_end,is_forecast&order=academic_year,transition_type`, { headers: SB_HDR }),
+      ]);
+      const rows   = ayRes.ok   ? await ayRes.json()   : [];
+      const recon  = reconRes.ok ? await reconRes.json() : [];
       const census = rows.length ? rows : SEED;
+
+      // ── Total Enrollment — most recent actual term from enrollment_reconciliation ──
+      // Map transition_type → which term's enrollment it represents (official_end)
+      // fall_to_spring.official_end   = Spring enrollment
+      // spring_to_summer.official_end = Summer enrollment
+      // summer_to_fall.official_end   = Fall enrollment
+      const termFromTransition = {
+        fall_to_spring:   'Spring',
+        spring_to_summer: 'Summer',
+        summer_to_fall:   'Fall',
+      };
+      // Find most recent actual (is_forecast=false) row with a non-null official_end
+      const actualRows = recon
+        .filter(r => r.is_forecast === false && r.official_end != null)
+        .sort((a, b) => {
+          if (a.academic_year !== b.academic_year) return a.academic_year > b.academic_year ? 1 : -1;
+          const order = { summer_to_fall: 0, fall_to_spring: 1, spring_to_summer: 2 };
+          return (order[a.transition_type] ?? 9) - (order[b.transition_type] ?? 9);
+        });
+
+      const mostRecent = actualRows.length ? actualRows[actualRows.length - 1] : null;
+      const elTotalEnr    = document.getElementById('m-total-enr');
+      const elTotalEnrLbl = document.getElementById('m-total-enr-lbl');
+      if (mostRecent && elTotalEnr) {
+        const termName = termFromTransition[mostRecent.transition_type] || '';
+        elTotalEnr.textContent = fmt(mostRecent.official_end);
+        elTotalEnr.classList.remove('placeholder');
+        elTotalEnr.style.color = 'var(--p)';
+        if (elTotalEnrLbl) elTotalEnrLbl.textContent = `Total ${termName} Enrollment`;
+      }
 
       // AY Total New Students — sum enrolled across all terms for most recent AY
       const latestAY = census.map(r => r.academic_year).sort().pop();

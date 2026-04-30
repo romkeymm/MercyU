@@ -113,6 +113,19 @@
     .est-toggle{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--txl);}
     .est-toggle input[type=checkbox]{width:11px;height:11px;cursor:pointer;accent-color:var(--p);}
 
+    /* Block-level estimate mode toggle in header */
+    .est-mode-toggle{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);transition:background .15s;user-select:none;}
+    .est-mode-toggle:hover{background:rgba(255,255,255,.22);}
+    .est-mode-toggle input[type=checkbox]{width:12px;height:12px;cursor:pointer;accent-color:#fff;}
+    .est-mode-toggle.active{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.5);}
+
+    /* Inline editable row value — shown in estimate mode */
+    .row-est-input{font-size:12px;font-weight:600;color:var(--tx);text-align:right;width:90px;border:.5px solid var(--gold);border-radius:4px;padding:2px 6px;background:#FFFDF5;font-family:var(--sans);outline:none;display:none;}
+    .row-est-input:focus{border-color:var(--p);background:#fff;}
+    .estimate-mode .row-est-input{display:block;}
+    .estimate-mode .row-val-display{display:none;}
+    .row-val-display{display:block;}
+
     /* Fav/Unfav badges */
     .fav{background:var(--fav-bg);color:var(--up);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
     .unfav{background:var(--unfav-bg);color:var(--dn);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
@@ -121,8 +134,8 @@
     /* ── Historical table ── */
     .hist-section{padding:14px 20px;border-bottom:.5px solid var(--bdr);}
     .hist-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
-    .hist-table th{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;white-space:nowrap;}
-    .hist-table th:first-child{text-align:left;}
+    .hist-table th,.hist-table-th{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;white-space:nowrap;}
+    .hist-table th:first-child,.hist-table-th:first-child{text-align:left;}
     .hist-table td{padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;color:var(--tx);}
     .hist-table td:first-child{text-align:left;font-weight:600;color:var(--txm);}
     .hist-table tr:hover td{background:var(--pl);}
@@ -466,15 +479,36 @@ function restoreInputs(ay) {
   // Per-block inputs — restored after render() via restoreBlockInputs()
 }
 
-// Called after render() re-creates block DOM; restores block-level inputs
+// Restore all saved inputs for a given AY after DOM rebuild
 function restoreBlockInputs(ay) {
   ['f2s','s2su','su2f'].forEach(type => {
+    // Legacy grad input
     const gradIn  = document.getElementById(`grad-${type}`);
     const gradChk = document.getElementById(`est-grad-${type}`);
     const savedGrad = lsLoad(ay, `grad-${type}`);
     const savedChk  = lsLoadBool(ay, `est-grad-${type}`);
     if (gradIn  && savedGrad != null) gradIn.value = savedGrad;
     if (gradChk) gradChk.checked = savedChk;
+
+    // Restore estimate mode toggle
+    const estModeEl = document.getElementById(`${type}-est-mode`);
+    const savedEstMode = lsLoadBool(ay, `${type}-est-mode`);
+    if (estModeEl) {
+      estModeEl.checked = savedEstMode;
+      // Apply CSS class and restore input values if was in estimate mode
+      const rows = document.getElementById(`${type}-rows`);
+      const lbl  = document.getElementById(`${type}-est-toggle-lbl`);
+      if (savedEstMode && rows) {
+        rows.classList.add('estimate-mode');
+        if (lbl) lbl.classList.add('active');
+        // Restore saved estimate input values
+        [`${type}-grads`,`${type}-non-ret`,`${type}-new-students`,`${type}-others-ret`].forEach(id => {
+          const el = document.getElementById(`${id}-input`);
+          const savedVal = lsLoad(ay, `est-input-${id}`);
+          if (el && savedVal != null) el.value = savedVal;
+        });
+      }
+    }
   });
 }
 
@@ -722,6 +756,153 @@ async function saveCurrentAYToSupabase() {
   }
 }
 
+// ── Historical tables (editable official counts) ─────────────────────────────
+function buildHistTables() {
+  const makeTable = (data, cols, offEndField, transitionType) => {
+    const hdrs = cols.map(c =>
+      `<th class="hist-table-th" style="text-align:${c.first?'left':'right'};">${c.label}</th>`
+    ).join('');
+
+    const rows = data.slice(0, -1).map(r => {
+      const cells = cols.map(c => {
+        if (c.field === 'yearLabel') {
+          return `<td style="text-align:left;font-weight:600;color:var(--txm);">${r.yearLabel ?? r.ay}</td>`;
+        }
+        if (c.editableEnd) {
+          // Editable official count cell — yellow input, saves to Supabase on blur
+          const val = r[offEndField] ?? '';
+          return `<td style="text-align:right;padding:3px 4px;">
+            <input type="number" class="hist-edit-inp" data-ay="${r.ay}" data-type="${transitionType}" data-field="official_end"
+              value="${val}" placeholder="—"
+              style="width:70px;text-align:right;border:.5px solid var(--gold);border-radius:4px;padding:2px 5px;font-size:11px;font-weight:600;font-family:var(--sans);background:#FFFDF5;outline:none;"
+              onblur="saveOfficialCount(this)"
+              onfocus="this.style.borderColor='var(--p)'"
+            />
+          </td>`;
+        }
+        const v = r[c.field];
+        if (v == null) return `<td style="text-align:right;color:var(--txl);">—</td>`;
+        const display = c.isPct ? (v*100).toFixed(1)+'%' : Math.round(v).toLocaleString();
+        const cls = c.neg && v < 0 ? 'color:var(--dn)' : c.pos && v > 0 ? 'color:var(--up)' : '';
+        return `<td style="text-align:right;${cls}">${display}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    // 3-yr avg row — last 3 complete (excluding in-progress)
+    const complete = data.slice(0, -1).filter(r => r[offEndField] != null);
+    const last3 = complete.slice(-3);
+    const avgCells = cols.map(c => {
+      if (c.field === 'yearLabel') return `<td style="text-align:left;font-weight:700;color:var(--p);">3-Yr Avg</td>`;
+      if (c.editableEnd) return `<td></td>`;
+      const vals = last3.map(r => r[c.field]).filter(v => v != null && !isNaN(v));
+      const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+      if (avg == null) return `<td style="text-align:right;">—</td>`;
+      const display = c.isPct ? (avg*100).toFixed(1)+'%' : Math.round(avg).toLocaleString();
+      return `<td style="text-align:right;">${display}</td>`;
+    }).join('');
+
+    return `<thead><tr>${hdrs}</tr></thead>
+            <tbody>${rows}<tr class="avg-row">${avgCells}</tr></tbody>`;
+  };
+
+  const f2sCols = [
+    {field:'yearLabel',label:'Year',first:true},
+    {field:'offFall',  label:'Official Fall'},
+    {field:'fallGrads',label:'Fall Grads',neg:true},
+    {field:'fallGradPct',label:'Grad %',isPct:true},
+    {field:'nonRet',   label:'Non-Ret',neg:true},
+    {field:'nrPct',    label:'NR %',isPct:true},
+    {field:'retained', label:'Retained'},
+    {field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet',label:'Others Ret',pos:true},
+    {field:'offSpring',label:'Official Spring',editableEnd:true},
+    {field:'spTarget', label:'Target'},
+  ];
+  const s2suCols = [
+    {field:'yearLabel',label:'Year',first:true},
+    {field:'offSpring', label:'Official Spring'},
+    {field:'spGrads',   label:'Sp Grads',neg:true},
+    {field:'spGradPct', label:'Grad %',isPct:true},
+    {field:'nonRet',    label:'Non-Ret',neg:true},
+    {field:'nrPct',     label:'NR %',isPct:true},
+    {field:'retained',  label:'Retained'},
+    {field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet', label:'Others Ret',pos:true},
+    {field:'offSummer', label:'Official Summer',editableEnd:true},
+    {field:'suTarget',  label:'Target'},
+  ];
+  const su2fCols = [
+    {field:'yearLabel', label:'Year',first:true},
+    {field:'offSummer', label:'Official Summer'},
+    {field:'suGrads',   label:'Su Grads',neg:true},
+    {field:'suGradPct', label:'Grad %',isPct:true},
+    {field:'nonRet',    label:'Non-Ret',neg:true},
+    {field:'nrPct',     label:'NR %',isPct:true},
+    {field:'retained',  label:'Retained'},
+    {field:'newStudents',label:'New Students',pos:true},
+    {field:'othersRet', label:'Others Ret',pos:true},
+    {field:'offFall',   label:'Official Fall',editableEnd:true},
+    {field:'fallTarget',label:'Target'},
+  ];
+
+  document.getElementById('tbl-f2s').innerHTML  = makeTable(F2S,  f2sCols,  'offSpring', 'fall_to_spring');
+  document.getElementById('tbl-s2su').innerHTML = makeTable(S2SU, s2suCols, 'offSummer', 'spring_to_summer');
+  document.getElementById('tbl-su2f').innerHTML = makeTable(SU2F, su2fCols, 'offFall',   'summer_to_fall');
+}
+
+// ── Save edited official count to Supabase and cascade into seed data ─────────
+async function saveOfficialCount(inp) {
+  inp.style.borderColor = 'var(--gold)'; // reset focus style
+  const ay           = inp.dataset.ay;
+  const transType    = inp.dataset.type;
+  const rawVal       = inp.value.trim();
+  const val          = rawVal === '' ? null : parseInt(rawVal, 10);
+
+  // Update the in-memory seed data so Reconciliation view picks it up immediately
+  const datasets = { fall_to_spring: F2S, spring_to_summer: S2SU, summer_to_fall: SU2F };
+  const arr = datasets[transType];
+  const row = arr?.find(r => r.ay === ay);
+  if (row) {
+    if (transType === 'fall_to_spring')   row.offSpring = val;
+    if (transType === 'spring_to_summer') row.offSummer = val;
+    if (transType === 'summer_to_fall')   row.offFall   = val;
+  }
+
+  // Re-render reconciliation if this AY is currently shown
+  if (ay === curAY) {
+    ['f2s','s2su','su2f'].forEach(recalcBlockValues);
+    updateKPIsAndSummary();
+  }
+
+  // Save to Supabase
+  if (val !== null) {
+    inp.style.background = '#FFFDF5';
+    try {
+      const payload = { academic_year: ay, transition_type: transType, official_end: val, is_forecast: false };
+      const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation`, {
+        method: 'POST',
+        headers: SB_HDR,
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        inp.style.background = '#E8F5E0'; // green flash = saved
+        setTimeout(() => { inp.style.background = '#FFFDF5'; }, 1200);
+        setStatus('live', `Official count saved to Supabase · ${ay} ${transType.replace(/_/g,' ')} = ${val}`);
+      } else {
+        const err = await res.text();
+        console.warn('Save official count error:', err);
+        inp.style.background = '#FDECEA';
+        setTimeout(() => { inp.style.background = '#FFFDF5'; }, 1500);
+      }
+    } catch(e) {
+      console.warn('Supabase save failed:', e);
+      inp.style.background = '#FDECEA';
+      setTimeout(() => { inp.style.background = '#FFFDF5'; }, 1500);
+    }
+  }
+}
+
 // ── Build AY buttons ──
 function buildAYButtons() {
   const aySet = [...new Set([...F2S.map(r=>r.ay),...S2SU.map(r=>r.ay),...SU2F.map(r=>r.ay)])].sort();
@@ -788,12 +969,26 @@ function computeBlock(type, ay) {
 
   if (startCount == null) return null;
 
-  // Graduate override toggle
-  const useEstGrad = document.getElementById(`est-grad-${type}`)?.checked;
-  const manualGrad = inp(`grad-${type}`);
+  // ── Check if estimate mode is active for this block ──
+  const estMode = document.getElementById(`${type}-est-mode`)?.checked;
+
+  // Helper: read estimate input value (positive number → we handle sign ourselves)
+  const estInp = (id) => {
+    const el = document.getElementById(`${id}-input`);
+    if (!el || el.value === '') return null;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? null : v;
+  };
+
+  // Graduate override — from estimate input if estimate mode on, else auto-calc or actual
+  const useEstGrad = document.getElementById(`est-grad-${type}`)?.checked; // legacy compat
+  const manualGrad = inp(`grad-${type}`); // legacy grad input
 
   let grads;
-  if (useEstGrad && manualGrad != null) {
+  if (estMode) {
+    const estGrad = estInp(`${type}-grads`);
+    grads = estGrad != null ? -Math.abs(estGrad) : (avgs.gradPct != null ? Math.round(startCount * avgs.gradPct) : (row?.[type === 'f2s' ? 'fallGrads' : type === 's2su' ? 'spGrads' : 'suGrads'] ?? null));
+  } else if (useEstGrad && manualGrad != null) {
     grads = -Math.abs(manualGrad);
   } else {
     const gradPct = avgs.gradPct;
@@ -802,21 +997,31 @@ function computeBlock(type, ay) {
 
   const maxReturn = startCount + (grads ?? 0);
 
-  // Non-returning: 3-term avg rate × maxReturn
+  // Non-returning — estimate or 3-term avg rate
   const nrRate = avgs.nrPct;
   let nonRet = null;
-  if (nrRate != null && maxReturn > 0) nonRet = Math.round(maxReturn * nrRate);
-  // Use actual if available and no manual needed
-  if (!isForward) {
-    const actualNR = row?.nonRet;
-    if (actualNR != null) nonRet = actualNR;
+  if (estMode) {
+    const estNR = estInp(`${type}-non-ret`);
+    nonRet = estNR != null ? -Math.abs(estNR) : (nrRate != null && maxReturn > 0 ? Math.round(maxReturn * nrRate) : null);
+  } else {
+    if (nrRate != null && maxReturn > 0) nonRet = Math.round(maxReturn * nrRate);
+    if (!isForward) { const actualNR = row?.nonRet; if (actualNR != null) nonRet = actualNR; }
   }
 
   const retained = maxReturn + (nonRet ?? 0);
 
-  // New students: pull from forecast for forward, actual for historical
+  // New students — estimate input, or forecast dashboard, or official census
   let newStudents;
-  if (isForward || !row?.newStudents) {
+  if (estMode) {
+    const estNS = estInp ? estInp(`${type}-new-students`) : null;
+    if (estNS != null) {
+      newStudents = estNS;
+    } else {
+      newStudents = type === 'f2s' ? NEW_STUDENT_FORECAST.spring
+                  : type === 's2su' ? NEW_STUDENT_FORECAST.summer
+                  : NEW_STUDENT_FORECAST.fall;
+    }
+  } else if (isForward || !row?.newStudents) {
     const manualNS = inp(`ns-${type}`);
     if (manualNS != null) {
       newStudents = manualNS;
@@ -829,9 +1034,12 @@ function computeBlock(type, ay) {
     newStudents = row.newStudents;
   }
 
-  // Others returning: 3-term avg or actual
+  // Others returning — estimate input, 3-term avg, or actual
   let othersRet;
-  if (!isForward && row?.othersRet != null) {
+  if (estMode) {
+    const estOR = estInp ? estInp(`${type}-others-ret`) : null;
+    othersRet = estOR != null ? estOR : Math.round(avgs.othersRet ?? 0);
+  } else if (!isForward && row?.othersRet != null) {
     othersRet = row.othersRet;
   } else {
     const manualOR = inp(`or-${type}`);
@@ -860,346 +1068,308 @@ function computeBlock(type, ay) {
   };
 }
 
-// ── Render a single recon block card ──
+// ── Render a single recon block card (static HTML only — called once per AY switch) ──
 function renderBlock(type, ay) {
   const labels = {
-    f2s:  { title: 'Fall → Spring',  color: 'spring', from: 'Fall', to: 'Spring', termColor: 'var(--spring)' },
-    s2su: { title: 'Spring → Summer',color: 'summer', from: 'Spring', to: 'Summer', termColor: 'var(--summer)' },
-    su2f: { title: 'Summer → Fall',  color: 'fall',   from: 'Summer', to: 'Fall', termColor: 'var(--fall)' },
+    f2s:  { title: 'Fall → Spring',  color: 'spring', from: 'Fall',   to: 'Spring' },
+    s2su: { title: 'Spring → Summer',color: 'summer', from: 'Spring', to: 'Summer' },
+    su2f: { title: 'Summer → Fall',  color: 'fall',   from: 'Summer', to: 'Fall'   },
   };
   const cfg = labels[type];
-  const calc = computeBlock(type, ay);
-  if (!calc) return `<div class="recon-block ${cfg.color}"><div class="recon-block-hd"><div><div class="recon-block-title">${cfg.title}</div><div class="recon-block-sub">No data</div></div></div></div>`;
+  // Pre-compute initial auto values for placeholder pre-fill
+  const avgs = AVG[type];
+  const datasets = { f2s: F2S, s2su: S2SU, su2f: SU2F };
+  const row = datasets[type].find(r => r.ay === ay);
+  const startCount = type==='f2s' ? row?.offFall : type==='s2su' ? row?.offSpring : row?.offSummer;
+  const gradAutoVal  = startCount && avgs.gradPct  ? Math.round(startCount * avgs.gradPct)  : null;
 
-  const isFc = calc.isForecast;
-  const statusLabel = isFc ? '▲ Forecast' : '✓ Actual';
+  // Editable input row helper — shows display value normally, editable input in estimate mode
+  const editRow = (id, extraClass='') => `
+    <span class="row-val-display ${extraClass}" id="${id}-display"></span>
+    <input type="number" class="row-est-input" id="${id}-input"
+      oninput="recalcBlock('${type}')" />`;
 
-  const valClass = (n) => n < 0 ? 'neg' : n > 0 ? 'pos' : '';
-  const endClass = isFc ? 'forecast' : 'total';
-
-  const varBadge = calc.variance != null
-    ? (calc.variance >= 0
-        ? `<span class="fav">+${fmt(calc.variance)} Fav</span>`
-        : `<span class="unfav">${fmt(calc.variance)} Unfav</span>`)
-    : `<span class="na-badge">No target</span>`;
-
-  // Graduate row: toggle + optional override input
-  const gradAutoVal = calc.startCount && AVG[type].gradPct
-    ? Math.round(calc.startCount * AVG[type].gradPct) : null;
-
-  const gradRow = `
-    <div class="recon-row">
-      <div class="row-lbl">
-        ${cfg.from} Graduates
-        <div class="est-toggle">
-          <input type="checkbox" id="est-grad-${type}" onchange="render()" title="Check to override with manual estimate" />
-          <label for="est-grad-${type}">Use estimate</label>
-        </div>
-      </div>
-      <div class="row-input-wrap">
-        <input type="number" id="grad-${type}" class="row-input" style="width:80px;"
-          placeholder="${gradAutoVal != null ? gradAutoVal : '—'}"
-          oninput="render()" />
-        <span class="calc-hint">${gradAutoVal != null ? 'auto: ' + gradAutoVal : ''}</span>
-      </div>
-      <div class="row-pct">${fmtPct(calc.gradPct)}</div>
-    </div>`;
-
-  return `<div class="recon-block ${cfg.color}">
+  return `<div class="recon-block ${cfg.color}" id="block-${type}">
     <div class="recon-block-hd">
       <div>
-        <div class="recon-block-title">${cfg.title} · ${ay}</div>
-        <div class="recon-block-sub">Starting: ${fmt(calc.startCount)} ${cfg.from} enrollment</div>
+        <div class="recon-block-title" id="${type}-title">${cfg.title} · ${ay}</div>
+        <div class="recon-block-sub" id="${type}-sub"></div>
       </div>
-      <div class="recon-status">${statusLabel}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label class="est-mode-toggle" id="${type}-est-toggle-lbl"
+          title="Enable to manually adjust any estimate in this block">
+          <input type="checkbox" id="${type}-est-mode"
+            onchange="toggleEstimateMode('${type}')" />
+          Use Estimates
+        </label>
+        <div class="recon-status" id="${type}-status"></div>
+      </div>
     </div>
-    <div class="recon-rows">
+    <div class="recon-rows" id="${type}-rows">
+
       <div class="recon-row">
         <div class="row-lbl bold">Official ${cfg.from} Count</div>
-        <div class="row-val total">${fmt(calc.startCount)}</div>
+        <div class="row-val total" id="${type}-start"></div>
         <div class="row-pct"></div>
       </div>
-      ${gradRow}
+
+      <div class="recon-row">
+        <div class="row-lbl">
+          ${cfg.from} Graduates
+          <div style="font-size:9px;color:var(--txl);font-style:italic;" id="${type}-grad-src-note">3-term avg rate</div>
+        </div>
+        <div class="row-val neg">
+          ${editRow(`${type}-grads`, 'neg')}
+        </div>
+        <div class="row-pct" id="${type}-grad-pct"></div>
+      </div>
+
       <div class="recon-row">
         <div class="row-lbl">Max to Return in ${cfg.to}</div>
-        <div class="row-val">${fmt(calc.maxReturn)}</div>
+        <div class="row-val" id="${type}-max-return"></div>
         <div class="row-pct"></div>
       </div>
+
       <div class="recon-row">
         <div class="row-lbl">
           Non-Returning (plug)
           <div style="font-size:9px;color:var(--txl);font-style:italic;">3-term avg rate × max return</div>
         </div>
-        <div class="row-val neg">${fmt(calc.nonRet)}</div>
-        <div class="row-pct">${fmtPct(calc.nrRate)}</div>
+        <div class="row-val neg">
+          ${editRow(`${type}-non-ret`, 'neg')}
+        </div>
+        <div class="row-pct" id="${type}-nr-pct"></div>
       </div>
+
       <div class="recon-row">
         <div class="row-lbl">Retained</div>
-        <div class="row-val">${fmt(calc.retained)}</div>
-        <div class="row-pct">${fmtPct(calc.retRate)}</div>
+        <div class="row-val" id="${type}-retained"></div>
+        <div class="row-pct" id="${type}-ret-pct"></div>
       </div>
+
       <div class="recon-row spacer"></div>
+
       <div class="recon-row">
         <div class="row-lbl">
           New Students
-          <div style="font-size:9px;color:var(--txl);font-style:italic;">${isFc ? 'from forecast dashboard' : 'official census'}</div>
+          <div style="font-size:9px;color:var(--txl);font-style:italic;" id="${type}-ns-note"></div>
         </div>
-        <div class="row-val pos">${fmt(calc.newStudents)}</div>
+        <div class="row-val pos">
+          ${editRow(`${type}-new-students`, 'pos')}
+        </div>
         <div class="row-pct"></div>
       </div>
+
       <div class="recon-row">
-        <div class="row-lbl">Others Returning</div>
-        <div class="row-val pos">${fmt(calc.othersRet)}</div>
-        <div class="row-pct">${isFc ? '<span style="color:var(--txl);font-style:italic;">3-term avg</span>' : ''}</div>
+        <div class="row-lbl">
+          Others Returning
+          <div style="font-size:9px;color:var(--txl);font-style:italic;" id="${type}-others-note"></div>
+        </div>
+        <div class="row-val pos">
+          ${editRow(`${type}-others-ret`, 'pos')}
+        </div>
+        <div class="row-pct"></div>
       </div>
+
       <div class="recon-row total-row">
         <div class="row-lbl bold">Official ${cfg.to} Count</div>
-        <div class="row-val ${endClass}">${fmt(calc.officialEnd)}</div>
+        <div class="row-val" id="${type}-official-end"></div>
         <div class="row-pct"></div>
       </div>
+
       <div class="recon-row spacer"></div>
+
       <div class="recon-row target-row">
         <div class="row-lbl">${cfg.to} Budget Target</div>
-        <div class="row-val">${calc.target != null ? fmt(calc.target) : '<span style="color:var(--txl);">Enter above</span>'}</div>
+        <div class="row-val" id="${type}-target"></div>
         <div class="row-pct"></div>
       </div>
+
       <div class="recon-row variance-row">
         <div class="row-lbl">Variance to Target</div>
-        <div class="row-val">${varBadge}</div>
+        <div class="row-val" id="${type}-variance"></div>
         <div class="row-pct"></div>
       </div>
+
     </div>
   </div>`;
 }
 
-// ── Render AY summary strip ──
-function renderAYSummary(ay) {
-  const f2s  = computeBlock('f2s',  ay);
-  const s2su = computeBlock('s2su', ay);
-  const su2f = computeBlock('su2f', ay);
+// ── Toggle estimate mode on a block — shows/hides inputs and pre-fills them ──
+function toggleEstimateMode(type) {
+  const chk = document.getElementById(`${type}-est-mode`);
+  const lbl = document.getElementById(`${type}-est-toggle-lbl`);
+  const rows = document.getElementById(`${type}-rows`);
+  const isOn = chk.checked;
 
-  // Non-returning rate: avg across all three transitions
-  const nrRates = [f2s?.nrRate, s2su?.nrRate, su2f?.nrRate].filter(v => v != null);
-  const ayNR = nrRates.length ? nrRates.reduce((a,b)=>a+b,0)/nrRates.length : null;
-
-  const cards = [
-    { lbl:'Fall', val: su2f?.officialEnd, color:'var(--fall)', fc: su2f?.isForecast },
-    { lbl:'Spring', val: f2s?.officialEnd, color:'var(--spring)', fc: f2s?.isForecast },
-    { lbl:'Summer', val: s2su?.officialEnd, color:'var(--summer)', fc: s2su?.isForecast },
-    { lbl:'Avg Non-Return Rate', val: ayNR != null ? fmtPct(ayNR) : '—', color:'var(--pd)', raw:true },
-  ];
-
-  document.getElementById('ay-summary').innerHTML = cards.map(c => `
-    <div style="background:var(--off);border:.5px solid var(--bdr);border-radius:8px;padding:10px 12px;border-top:3px solid ${c.color};">
-      <div style="font-size:10px;color:var(--txl);margin-bottom:4px;">${c.lbl}</div>
-      <div style="font-size:20px;font-weight:600;color:${c.color};">${c.raw ? c.val : fmt(c.val)}${c.fc ? '<span style="font-size:10px;color:var(--txl);font-weight:400;margin-left:4px;">forecast</span>' : ''}</div>
-    </div>`).join('');
-
-  // Update KPIs
-  const fallRow  = SU2F.find(r=>r.ay===ay);
-  const spRow    = F2S.find(r=>r.ay===ay);
-  const suRow    = S2SU.find(r=>r.ay===ay);
-
-  const fallVal  = su2f?.officialEnd;
-  const spVal    = f2s?.officialEnd;
-  const suVal    = s2su?.officialEnd;
-
-  // Compare to prior AY
-  const ayList   = [...new Set(F2S.map(r=>r.ay))].sort();
-  const priorIdx = ayList.indexOf(ay) - 1;
-  const priorAY  = priorIdx >= 0 ? ayList[priorIdx] : null;
-
-  function deltaStr(val, priorVal, el) {
-    const d = document.getElementById(el);
-    if (!d) return;
-    if (val != null && priorVal != null) {
-      const diff = Math.round(val - priorVal);
-      d.textContent = sign(diff) + fmt(Math.abs(diff)) + ' vs ' + (priorAY||'');
-      d.className = 'metric-delta ' + (diff >= 0 ? 'up' : 'dn');
-    } else { d.textContent = ''; d.className = 'metric-delta nt'; }
+  // Toggle CSS class that shows/hides inputs vs display values
+  if (isOn) {
+    rows.classList.add('estimate-mode');
+    lbl.classList.add('active');
+    // Pre-fill each input with the current computed value
+    const calc = computeBlock(type, curAY);
+    if (calc) {
+      prefillEstInput(`${type}-grads`,       calc.grads        != null ? Math.abs(calc.grads)         : '');
+      prefillEstInput(`${type}-non-ret`,     calc.nonRet       != null ? Math.abs(calc.nonRet)        : '');
+      prefillEstInput(`${type}-new-students`,calc.newStudents  != null ? calc.newStudents              : '');
+      prefillEstInput(`${type}-others-ret`,  calc.othersRet    != null ? calc.othersRet               : '');
+    }
+  } else {
+    rows.classList.remove('estimate-mode');
+    lbl.classList.remove('active');
+    // Clear inputs so auto-calc takes over again
+    [`${type}-grads`,`${type}-non-ret`,`${type}-new-students`,`${type}-others-ret`].forEach(id => {
+      const el = document.getElementById(`${id}-input`);
+      if (el) el.value = '';
+    });
   }
-
-  document.getElementById('kpi-fall').textContent   = fmt(fallVal);
-  document.getElementById('kpi-spring').textContent = fmt(spVal);
-  document.getElementById('kpi-summer').textContent = fmt(suVal);
-  document.getElementById('kpi-nr').textContent     = ayNR != null ? fmtPct(ayNR) : '—';
-
-  if (priorAY) {
-    const prF2s  = computeBlockSimple('f2s',  priorAY);
-    const prS2Su = computeBlockSimple('s2su', priorAY);
-    const prSu2F = computeBlockSimple('su2f', priorAY);
-    deltaStr(fallVal,  prSu2F?.officialEnd, 'kpid-fall');
-    deltaStr(spVal,    prF2s?.officialEnd,  'kpid-spring');
-    deltaStr(suVal,    prS2Su?.officialEnd, 'kpid-summer');
-  }
-
-  const priorNRRates = [
-    F2S.find(r=>r.ay===priorAY)?.nrPct,
-    S2SU.find(r=>r.ay===priorAY)?.nrPct,
-    SU2F.find(r=>r.ay===priorAY)?.nrPct,
-  ].filter(v=>v!=null);
-  const priorNR = priorNRRates.length ? priorNRRates.reduce((a,b)=>a+b,0)/priorNRRates.length : null;
-  const nrD = document.getElementById('kpid-nr');
-  if (ayNR != null && priorNR != null) {
-    const diff = ayNR - priorNR;
-    nrD.textContent = (diff >= 0 ? '+' : '') + (diff*100).toFixed(1) + 'pp vs prior AY';
-    nrD.className = 'metric-delta ' + (diff <= 0 ? 'up' : 'dn'); // lower NR is better
-  }
+  lsSave(curAY, `${type}-est-mode`, isOn);
+  recalcBlock(type);
 }
 
-// Simple version of computeBlock that doesn't read DOM inputs (for prior-year comparison)
-function computeBlockSimple(type, ay) {
-  const datasets = { f2s: F2S, s2su: S2SU, su2f: SU2F };
-  const row = getRow(datasets[type], ay);
-  if (!row) return null;
-  const avgs = AVG[type];
-  let startCount = type==='f2s' ? row.offFall : type==='s2su' ? row.offSpring : row.offSummer;
-  if (!startCount) return null;
-  const grads = row[type==='f2s'?'fallGrads':type==='s2su'?'spGrads':'suGrads'] ?? Math.round(startCount*(avgs.gradPct??0));
-  const maxReturn = startCount + grads;
-  const nonRet = row.nonRet ?? Math.round(maxReturn*(avgs.nrPct??0));
-  const retained = maxReturn + nonRet;
-  const newStudents = row.newStudents ?? Math.round(avgs.newStudents??0);
-  const othersRet = row.othersRet ?? Math.round(avgs.othersRet??0);
-  const officialEnd = retained + newStudents + othersRet;
-  return { officialEnd, nrRate: maxReturn ? nonRet/maxReturn : null };
+function prefillEstInput(id, val) {
+  const el = document.getElementById(`${id}-input`);
+  if (el && (el.value === '' || el.value === '0')) el.value = val !== '' ? val : '';
 }
 
-// ── Build historical tables ──
-function buildHistTables() {
-  const makeTable = (data, cols) => {
-    const hdrs = cols.map(c=>`<th>${c.label}</th>`).join('');
-    // data rows
-    const rows = data.slice(0,-1).map(r => {
-      const cells = cols.map(c => {
-        const v = r[c.field];
-        let display = v == null ? '—' : (c.isPct ? fmtPct(v) : fmt(v));
-        let cls = '';
-        if (c.field === 'variance' || c.field === 'spTarget' || c.field === 'suTarget' || c.field === 'fallTarget') {
-          const varVal = r.offSpring != null ? r.offSpring - (r.spTarget??r.offSpring)
-                      : r.offSummer != null ? r.offSummer - (r.suTarget??r.offSummer)
-                      : r.offFall   != null ? r.offFall   - (r.fallTarget??r.offFall) : null;
-        }
-        if (c.neg && v != null) cls = 'unfav-cell';
-        if (c.pos && v != null) cls = 'fav-cell';
-        return `<td class="${cls}">${display}</td>`;
-      }).join('');
-      const isTarget = false;
-      return `<tr>${cells}</tr>`;
-    }).join('');
+// ── Update only computed cells for one block — never rebuilds DOM ──
+function recalcBlock(type) {
+  // Persist estimate mode and input values
+  const gradIn  = document.getElementById(`grad-${type}`);  // legacy - kept for compat
+  const gradChk = document.getElementById(`est-grad-${type}`);
+  if (gradIn)  lsSave(curAY, `grad-${type}`,     gradIn.value);
+  if (gradChk) lsSave(curAY, `est-grad-${type}`, gradChk.checked);
 
-    // Avg row
-    const avgCells = cols.map(c => {
-      if (c.field === 'yearLabel' || c.field === 'ay') return '<td>3-Yr Avg</td>';
-      const vals = data.slice(-4,-1).map(r=>r[c.field]).filter(v=>v!=null&&v!==0);
-      const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-      return `<td>${avg == null ? '—' : (c.isPct ? fmtPct(avg) : fmt(avg))}</td>`;
-    }).join('');
+  // Persist estimate mode inputs
+  const estMode = document.getElementById(`${type}-est-mode`)?.checked;
+  if (estMode) {
+    [`${type}-grads`,`${type}-non-ret`,`${type}-new-students`,`${type}-others-ret`].forEach(id => {
+      const el = document.getElementById(`${id}-input`);
+      if (el) lsSave(curAY, `est-input-${id}`, el.value);
+    });
+  }
 
-    return `<thead><tr>${hdrs}</tr></thead><tbody>${rows}<tr class="avg-row">${avgCells}</tr></tbody>`;
+  const calc = computeBlock(type, curAY);
+  if (!calc) return;
+
+  const isFc     = calc.isForecast;
+  const fromLbl  = type==='f2s' ? 'Fall' : type==='s2su' ? 'Spring' : 'Summer';
+  const endClass = isFc ? 'forecast' : 'total';
+
+  // Update display spans and inputs
+  const setDisplay = (id, val) => {
+    const disp = document.getElementById(`${id}-display`);
+    const inp  = document.getElementById(`${id}-input`);
+    if (disp) disp.textContent = val ?? '';
+    // Only update input placeholder — don't overwrite user's typed value
+    if (inp && !estMode) inp.value = '';
   };
 
-  document.getElementById('tbl-f2s').innerHTML = makeTable(F2S, [
-    {field:'yearLabel',label:'Year'},{field:'offFall',label:'Official Fall'},
-    {field:'fallGrads',label:'Fall Grads',neg:true},{field:'fallGradPct',label:'Grad %',isPct:true},
-    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
-    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
-    {field:'othersRet',label:'Others Ret',pos:true},{field:'offSpring',label:'Official Spring'},
-    {field:'spTarget',label:'Target'},
-  ]);
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? ''; };
 
-  document.getElementById('tbl-s2su').innerHTML = makeTable(S2SU, [
-    {field:'yearLabel',label:'Year'},{field:'offSpring',label:'Official Spring'},
-    {field:'spGrads',label:'Sp Grads',neg:true},{field:'spGradPct',label:'Grad %',isPct:true},
-    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
-    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
-    {field:'othersRet',label:'Others Ret',pos:true},{field:'offSummer',label:'Official Summer'},
-    {field:'suTarget',label:'Target'},
-  ]);
+  set(`${type}-sub`,         `Starting: ${fmt(calc.startCount)} ${fromLbl} enrollment`);
+  set(`${type}-status`,      isFc ? '▲ Forecast' : '✓ Actual');
+  set(`${type}-start`,       fmt(calc.startCount));
+  set(`${type}-grad-src-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg rate' : 'official'));
+  set(`${type}-grad-pct`,    fmtPct(calc.gradPct));
+  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? 'from forecast dashboard' : 'official census'));
+  set(`${type}-others-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg' : ''));
 
-  document.getElementById('tbl-su2f').innerHTML = makeTable(SU2F, [
-    {field:'yearLabel',label:'Year'},{field:'offSummer',label:'Official Summer'},
-    {field:'suGrads',label:'Su Grads',neg:true},{field:'suGradPct',label:'Grad %',isPct:true},
-    {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
-    {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
-    {field:'othersRet',label:'Others Ret',pos:true},{field:'offFall',label:'Official Fall'},
-    {field:'fallTarget',label:'Target'},
-  ]);
+  // Rows with display/input dual mode
+  setDisplay(`${type}-grads`,        fmt(calc.grads));
+  setDisplay(`${type}-non-ret`,      fmt(calc.nonRet));
+  setDisplay(`${type}-new-students`, fmt(calc.newStudents));
+  setDisplay(`${type}-others-ret`,   fmt(calc.othersRet));
+
+  set(`${type}-max-return`,  fmt(calc.maxReturn));
+  set(`${type}-nr-pct`,      fmtPct(calc.nrRate));
+  set(`${type}-retained`,    fmt(calc.retained));
+  set(`${type}-ret-pct`,     fmtPct(calc.retRate));
+
+  const endEl = document.getElementById(`${type}-official-end`);
+  if (endEl) { endEl.textContent = fmt(calc.officialEnd); endEl.className = `row-val ${endClass}`; }
+
+  set(`${type}-target`, calc.target != null ? fmt(calc.target) : 'Enter above');
+
+  const varEl = document.getElementById(`${type}-variance`);
+  if (varEl) {
+    if (calc.variance != null) {
+      varEl.innerHTML = calc.variance >= 0
+        ? `<span class="fav">+${fmt(calc.variance)} Fav</span>`
+        : `<span class="unfav">${fmt(calc.variance)} Unfav</span>`;
+    } else {
+      varEl.innerHTML = `<span class="na-badge">No target</span>`;
+    }
+  }
+
+  // Cascade downstream blocks
+  if (type === 'f2s')  recalcBlockValues('s2su');
+  if (type === 's2su') recalcBlockValues('su2f');
+
+  updateKPIsAndSummary();
 }
 
-// ── Charts ──
-function buildCharts() {
-  const ayList = [...new Set(F2S.map(r=>r.ay))].sort().slice(-8);
-  const labels = ayList.map(ay=>ay.replace('AY',''));
-  const fallData   = ayList.map(ay=>{ const r=SU2F.find(d=>d.ay===ay); return r?.offFall??null; });
-  const spData     = ayList.map(ay=>{ const r=F2S.find(d=>d.ay===ay);  return r?.offSpring??null; });
-  const suData     = ayList.map(ay=>{ const r=S2SU.find(d=>d.ay===ay); return r?.offSummer??null; });
+// Lightweight recalc that only updates cells, no persistence (used for cascade)
+function recalcBlockValues(type) {
+  const calc = computeBlock(type, curAY);
+  if (!calc) return;
+  const isFc    = calc.isForecast;
+  const fromLbl = type==='f2s' ? 'Fall' : type==='s2su' ? 'Spring' : 'Summer';
+  const estMode = document.getElementById(`${type}-est-mode`)?.checked;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? ''; };
+  const setDisplay = (id, val) => { const d = document.getElementById(`${id}-display`); if (d) d.textContent = val ?? ''; };
 
-  const ctx1 = document.getElementById('enr-chart').getContext('2d');
-  enrChart = new Chart(ctx1, {
-    type:'bar',
-    data:{ labels,
-      datasets:[
-        {label:'Fall',  data:fallData, backgroundColor:'#185FA5',borderRadius:3},
-        {label:'Spring',data:spData,   backgroundColor:'#5A8C3C',borderRadius:3},
-        {label:'Summer',data:suData,   backgroundColor:'#BA7517',borderRadius:3},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{stacked:true,ticks:{font:{size:9},autoSkip:false},grid:{display:false}},
-        y:{stacked:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}}
-      }
+  set(`${type}-sub`,         `Starting: ${fmt(calc.startCount)} ${fromLbl} enrollment`);
+  set(`${type}-status`,      isFc ? '▲ Forecast' : '✓ Actual');
+  set(`${type}-start`,       fmt(calc.startCount));
+  set(`${type}-grad-pct`,    fmtPct(calc.gradPct));
+  set(`${type}-max-return`,  fmt(calc.maxReturn));
+  set(`${type}-nr-pct`,      fmtPct(calc.nrRate));
+  set(`${type}-retained`,    fmt(calc.retained));
+  set(`${type}-ret-pct`,     fmtPct(calc.retRate));
+  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? 'from forecast dashboard' : 'official census'));
+  set(`${type}-others-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg' : ''));
+  set(`${type}-grad-src-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg rate' : 'official'));
+
+  setDisplay(`${type}-grads`,        fmt(calc.grads));
+  setDisplay(`${type}-non-ret`,      fmt(calc.nonRet));
+  setDisplay(`${type}-new-students`, fmt(calc.newStudents));
+  setDisplay(`${type}-others-ret`,   fmt(calc.othersRet));
+
+  const endEl = document.getElementById(`${type}-official-end`);
+  if (endEl) { endEl.textContent = fmt(calc.officialEnd); endEl.className = `row-val ${isFc ? 'forecast' : 'total'}`; }
+  set(`${type}-target`, calc.target != null ? fmt(calc.target) : 'Enter above');
+  const varEl = document.getElementById(`${type}-variance`);
+  if (varEl) {
+    if (calc.variance != null) {
+      varEl.innerHTML = calc.variance >= 0
+        ? `<span class="fav">+${fmt(calc.variance)} Fav</span>`
+        : `<span class="unfav">${fmt(calc.variance)} Unfav</span>`;
+    } else {
+      varEl.innerHTML = `<span class="na-badge">No target</span>`;
     }
-  });
-
-  // NR rate chart
-  const nrData = ayList.map(ay=>{
-    const f = F2S.find(r=>r.ay===ay)?.nrPct;
-    const s = S2SU.find(r=>r.ay===ay)?.nrPct;
-    const su = SU2F.find(r=>r.ay===ay)?.nrPct;
-    const vals = [f,s,su].filter(v=>v!=null);
-    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length)*100 : null;
-  });
-  const avgNR = nrData.filter(v=>v!=null).slice(0,-1).reduce((a,b)=>a+b,0) / nrData.filter(v=>v!=null).slice(0,-1).length;
-
-  const ctx2 = document.getElementById('nr-chart').getContext('2d');
-  nrChart = new Chart(ctx2, {
-    type:'bar',
-    data:{ labels,
-      datasets:[
-        {label:'Avg NR rate',data:labels.map(()=>parseFloat(avgNR.toFixed(2))),type:'line',
-          borderColor:'rgba(121,31,31,.4)',backgroundColor:'transparent',
-          borderDash:[4,3],borderWidth:1.5,pointRadius:0,tension:0},
-        {label:'AY NR rate',data:nrData,backgroundColor:'#2E1A42',borderRadius:3},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{font:{size:9},autoSkip:false},grid:{display:false}},
-        y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}}
-      }
-    }
-  });
+  }
 }
 
-// ── Main render ──
+// ── Update KPIs and AY summary (called after any block recalc) ──
+function updateKPIsAndSummary() {
+  renderAYSummary(curAY);
+}
+
+// ── Main render — builds static HTML once per AY, then populates values ──
 function render() {
-  // Save before re-render so state isn't lost
-  saveAllInputs(curAY);
-
-  // Recon blocks
+  // Build static block HTML (inputs + DOM structure only)
   document.getElementById('recon-blocks').innerHTML =
     renderBlock('f2s',  curAY) +
     renderBlock('s2su', curAY) +
     renderBlock('su2f', curAY);
 
-  // Restore block-level inputs (they were just re-created by renderBlock)
+  // Restore saved input state BEFORE computing (so computeBlock reads correct values)
   restoreBlockInputs(curAY);
 
-  renderAYSummary(curAY);
+  // Populate all computed cells
+  ['f2s','s2su','su2f'].forEach(recalcBlockValues);
+  updateKPIsAndSummary();
 
   document.getElementById('view-pill').textContent = `${curAY} · ${curView === 'recon' ? 'Reconciliation' : 'Historical'}`;
   document.getElementById('hdr-sub').textContent = `Legacy enrollment · ${curAY} · Historical reconciliation & projection`;
@@ -1229,11 +1399,18 @@ function prefillTargets() {
   });
 }
 
-// ── Wire budget target inputs to auto-save ──
+// ── Wire budget target inputs to auto-save and recalc ──
 function attachTargetSavers() {
   ['fall','spring','summer'].forEach(term => {
     const el = document.getElementById(`target-${term}`);
-    if (el) el.addEventListener('input', () => lsSave(curAY, `target-${term}`, el.value));
+    if (el) el.addEventListener('input', () => {
+      lsSave(curAY, `target-${term}`, el.value);
+      // Recalc whichever block uses this target
+      if (term === 'spring') recalcBlockValues('f2s');
+      if (term === 'summer') recalcBlockValues('s2su');
+      if (term === 'fall')   recalcBlockValues('su2f');
+      updateKPIsAndSummary();
+    });
   });
 }
 
