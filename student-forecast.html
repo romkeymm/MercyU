@@ -249,29 +249,39 @@
   <!-- Current-data input section -->
   <div class="input-section">
     <div class="section-hd">
-      Today's Funnel Counts
-      <span style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;">Enter current numbers below — forecast updates automatically</span>
+      <span id="input-section-title">Funnel Counts</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="input-section-date" style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;font-style:italic;"></span>
+        <span class="section-hd-note">Numbers persist until updated — forecast stays live</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:600;color:var(--txm);text-transform:uppercase;letter-spacing:.06em;">As of date</div>
+      <input type="date" id="inp-date" class="funnel-input-field"
+        style="width:160px;font-size:12px;font-weight:500;padding:5px 8px;"
+        oninput="saveInputsToLS()" />
+      <div style="font-size:10px;color:var(--txl);font-style:italic;" id="last-saved-note"></div>
     </div>
     <div class="input-row2" id="funnel-inputs">
       <div class="funnel-input">
         <div class="funnel-input-lbl">Inquiries</div>
-        <input class="funnel-input-field" type="number" id="inp-inq" placeholder="—" min="0" oninput="recalc()" />
+        <input class="funnel-input-field" type="number" id="inp-inq" placeholder="—" min="0" oninput="recalc();saveInputsToLS()" />
       </div>
       <div class="funnel-input">
         <div class="funnel-input-lbl">Applications</div>
-        <input class="funnel-input-field" type="number" id="inp-app" placeholder="—" min="0" oninput="recalc()" />
+        <input class="funnel-input-field" type="number" id="inp-app" placeholder="—" min="0" oninput="recalc();saveInputsToLS()" />
       </div>
       <div class="funnel-input">
         <div class="funnel-input-lbl">Admissions</div>
-        <input class="funnel-input-field" type="number" id="inp-adm" placeholder="—" min="0" oninput="recalc()" />
+        <input class="funnel-input-field" type="number" id="inp-adm" placeholder="—" min="0" oninput="recalc();saveInputsToLS()" />
       </div>
       <div class="funnel-input">
         <div class="funnel-input-lbl">Confirmed</div>
-        <input class="funnel-input-field" type="number" id="inp-conf" placeholder="—" min="0" oninput="recalc()" />
+        <input class="funnel-input-field" type="number" id="inp-conf" placeholder="—" min="0" oninput="recalc();saveInputsToLS()" />
       </div>
       <div class="funnel-input">
         <div class="funnel-input-lbl">Enrolled</div>
-        <input class="funnel-input-field" type="number" id="inp-enr" placeholder="—" min="0" oninput="recalc()" />
+        <input class="funnel-input-field" type="number" id="inp-enr" placeholder="—" min="0" oninput="recalc();saveInputsToLS()" />
       </div>
     </div>
     <div class="growth-note" id="growth-note"></div>
@@ -579,6 +589,7 @@ function setTerm(term, btn) {
     const b = document.getElementById('btn-' + t);
     if (b) b.className = 'seg-btn' + (t === term ? ' a-' + t.toLowerCase() : '');
   });
+  saveInputsToLS();
   recalc();
 }
 
@@ -675,6 +686,80 @@ function getCurrentInputs() {
     const v = parseFloat(document.getElementById(ids[i]).value);
     return isNaN(v) ? null : v;
   });
+}
+
+// ── Funnel input persistence — localStorage ──────────────────────────────────
+const INP_LS_KEY = 'sf_funnel_inputs'; // single JSON object: {date, inq, app, adm, conf, enr, term}
+
+function saveInputsToLS() {
+  const snapshot = {
+    date:  document.getElementById('inp-date')?.value  || new Date().toISOString().slice(0,10),
+    inq:   document.getElementById('inp-inq')?.value   || '',
+    app:   document.getElementById('inp-app')?.value   || '',
+    adm:   document.getElementById('inp-adm')?.value   || '',
+    conf:  document.getElementById('inp-conf')?.value  || '',
+    enr:   document.getElementById('inp-enr')?.value   || '',
+    term:  curTerm,
+    savedAt: new Date().toISOString(),
+  };
+  try { localStorage.setItem(INP_LS_KEY, JSON.stringify(snapshot)); } catch(e) {}
+  updateInputSectionHeader(snapshot);
+}
+
+function restoreInputsFromLS() {
+  try {
+    const raw = localStorage.getItem(INP_LS_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    const dateEl  = document.getElementById('inp-date');
+    const inqEl   = document.getElementById('inp-inq');
+    const appEl   = document.getElementById('inp-app');
+    const admEl   = document.getElementById('inp-adm');
+    const confEl  = document.getElementById('inp-conf');
+    const enrEl   = document.getElementById('inp-enr');
+    if (dateEl  && s.date)  dateEl.value  = s.date;
+    if (inqEl   && s.inq)   inqEl.value   = s.inq;
+    if (appEl   && s.app)   appEl.value   = s.app;
+    if (admEl   && s.adm)   admEl.value   = s.adm;
+    if (confEl  && s.conf)  confEl.value  = s.conf;
+    if (enrEl   && s.enr)   enrEl.value   = s.enr;
+    updateInputSectionHeader(s);
+    return true;
+  } catch(e) { return false; }
+}
+
+function updateInputSectionHeader(s) {
+  const titleEl   = document.getElementById('input-section-title');
+  const dateEl    = document.getElementById('input-section-date');
+  const noteEl    = document.getElementById('last-saved-note');
+  const hasValues = s && (s.app || s.adm || s.conf || s.enr || s.inq);
+
+  if (titleEl) {
+    if (s && s.date && hasValues) {
+      const d = new Date(s.date + 'T12:00:00'); // avoid timezone shift
+      const label = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      titleEl.textContent = `Funnel Counts — ${label}`;
+    } else {
+      titleEl.textContent = 'Funnel Counts';
+    }
+  }
+  if (dateEl) {
+    if (s && s.savedAt && hasValues) {
+      const saved = new Date(s.savedAt);
+      dateEl.textContent = `Last updated ${saved.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${saved.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+    } else {
+      dateEl.textContent = '';
+    }
+  }
+  if (noteEl) {
+    if (s && s.date && hasValues) {
+      noteEl.textContent = 'Persisted · update counts and log a new snapshot when data changes';
+      noteEl.style.color = 'var(--g)';
+    } else {
+      noteEl.textContent = 'Enter counts above — they will persist until you update them';
+      noteEl.style.color = 'var(--txl)';
+    }
+  }
 }
 
 // ── Main recalc ───────────────────────────────────────────────────────────────
@@ -1038,7 +1123,7 @@ function renderHistTable(rows, avgRow) {
   const rowsHtml = rows.map(r => makeRow(r.academic_year, r, '')).join('');
 
   // Avg row — always 3-year, independent of the trend window toggle
-  const threeYearRows = allRows.slice(-3);
+  const threeYearRows = rows.slice(-3);
   const threeYearAvgs = stageFields.map(f => avg(threeYearRows, f));
   const avgObj = {};
   stageFields.forEach((f, i) => avgObj[f] = threeYearAvgs[i]);
@@ -1074,8 +1159,9 @@ function exportCSV() {
 
 // ── Snapshot Modal ────────────────────────────────────────────────────────────
 function openModal() {
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('form-date').value = today;
+  // Default modal date to whatever is in the "as of" date field, or today
+  const asOfDate = document.getElementById('inp-date')?.value || new Date().toISOString().slice(0,10);
+  document.getElementById('form-date').value = asOfDate;
   document.getElementById('form-term').value = curTerm;
   // Pre-fill from current input counts
   const fieldMap = [
@@ -1126,6 +1212,11 @@ async function saveSnapshot() {
       throw new Error(err.substring(0, 120));
     }
     trackData.push(payload);
+    // Update the "as of date" input and persist to localStorage with the saved snapshot date
+    const savedDate = document.getElementById('form-date').value;
+    const dateInpEl = document.getElementById('inp-date');
+    if (dateInpEl && savedDate) dateInpEl.value = savedDate;
+    saveInputsToLS();
     msg.className = 'save-msg success';
     msg.textContent = '✓ Snapshot saved!';
     setTimeout(closeModal, 1500);
@@ -1138,8 +1229,17 @@ async function saveSnapshot() {
 }
 
 // Init
-document.getElementById('form-date') && (document.getElementById('form-date').value = new Date().toISOString().slice(0,10));
-fetchAll();
+// Restore persisted inputs first so forecast is live immediately
+const hadSaved = restoreInputsFromLS();
+// If nothing saved yet, default the date to today
+if (!hadSaved) {
+  const dateEl = document.getElementById('inp-date');
+  if (dateEl) dateEl.value = new Date().toISOString().slice(0,10);
+}
+fetchAll().then(() => {
+  // Re-run recalc after Supabase data loads so lift uses the live data
+  if (hadSaved) recalc();
+});
 </script>
 </body>
 </html>

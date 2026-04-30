@@ -97,6 +97,15 @@
     .legend span{display:flex;align-items:center;gap:4px;}
     .legend-sq{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
 
+    /* Raw data table */
+    .raw-th{font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--txl);padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;white-space:nowrap;}
+    .raw-th:first-child{text-align:left;}
+    .raw-td{padding:5px 8px;border-bottom:.5px solid var(--bdr);text-align:right;color:var(--tx);}
+    .raw-td:first-child{text-align:left;font-weight:600;color:var(--txm);}
+    #raw-table tr:hover td{background:var(--pl);}
+    .raw-avg-row td{font-weight:700;color:var(--p);background:var(--off);}
+    .raw-fav{color:var(--up);} .raw-unfav{color:var(--dn);}
+
     /* Footer */
     .footer-bar{padding:8px 20px;background:var(--off);border-top:.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
     .footer-tx{font-size:10px;color:var(--txl);}
@@ -146,8 +155,6 @@
       </div>
     </div>
     <div class="hdr-r">
-      <a href="enrollment-forecast.html" class="btn btn-export" style="text-decoration:none;">Total Enrollment →</a>
-      <a href="student-forecast.html" class="btn btn-export" style="text-decoration:none;">New Student Forecast →</a>
       <button class="btn btn-export" onclick="exportCSV()">Export CSV</button>
       <button class="btn btn-add" onclick="openModal()">+ Enter Data</button>
     </div>
@@ -233,12 +240,25 @@
     </div>
   </div>
 
+  <!-- Raw Historical Data Table -->
+  <div class="funnel-section" id="raw-data-section" style="padding:14px 20px;border-bottom:.5px solid var(--bdr);">
+    <div class="section-hd">
+      Historical census data
+      <span id="raw-table-note" style="font-size:10px;font-weight:400;color:var(--txl);letter-spacing:0;text-transform:none;"></span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;" id="raw-table">
+      <thead>
+        <tr id="raw-table-head"></tr>
+      </thead>
+      <tbody id="raw-table-body">
+        <tr><td colspan="10" style="text-align:center;padding:20px;color:var(--txl);">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <div class="footer-bar">
     <div class="footer-tx" id="footer-tx">Source: Supabase · enrollment_funnel_ay + enrollment_funnel_term</div>
-    <div style="display:flex;gap:16px;align-items:center;">
-      <a href="student-forecast.html" class="footer-link">Enrollment Forecast →</a>
-      <a href="https://apply.mchs.edu/manage/" class="footer-link">Open Slate CRM →</a>
-    </div>
+    <a href="https://apply.mchs.edu/manage/" class="footer-link">Open Slate CRM →</a>
   </div>
 
 </div>
@@ -499,6 +519,7 @@ function render() {
   }
 
   updateYoYChart(v, pr);
+  renderRawTable();
 }
 
 function renderTermCards() {
@@ -597,6 +618,77 @@ function buildTrendChart() {
       }
     }
   });
+}
+
+// ── Raw Historical Data Table ─────────────────────────────────────────────────
+function renderRawTable() {
+  const fmtN = n => (n == null) ? '—' : Number(n).toLocaleString();
+  const fmtP = (a, b) => (a != null && b != null && b > 0) ? (a / b * 100).toFixed(1) + '%' : '—';
+
+  const isTermView = !!curTerm;
+  const note = document.getElementById('raw-table-note');
+
+  let rows = [];
+  if (isTermView) {
+    // Show all available years for the selected term
+    ayList.forEach(ay => {
+      const code = getTermCode(ay, curTerm);
+      const d = code ? termData[code] : null;
+      if (!d) return;
+      const match = ay.match(/AY(\d{2})-(\d{2})/);
+      const y1 = match ? 2000 + parseInt(match[1]) : '';
+      const y2 = match ? 2000 + parseInt(match[2]) : '';
+      const label = curTerm === 'Fall' ? `Fall ${y1}` : curTerm === 'Spring' ? `Spring ${y2}` : `Summer ${y1}`;
+      rows.push({ label, inq: d.inquiries, app: d.applications, adm: d.admissions, conf: d.confirmed, enr: d.enrolled });
+    });
+    if (note) note.textContent = `${curTerm} term · ${rows.length} year${rows.length !== 1 ? 's' : ''}`;
+  } else {
+    // AY view — annual totals
+    ayList.forEach(ay => {
+      const d = ayData[ay];
+      if (!d) return;
+      rows.push({ label: ay.replace('AY', ''), inq: d.inquiries, app: d.applications, adm: d.admissions, conf: d.confirmed, enr: d.enrolled });
+    });
+    if (note) note.textContent = `All terms · ${rows.length} academic year${rows.length !== 1 ? 's' : ''}`;
+  }
+
+  // Build header
+  const head = document.getElementById('raw-table-head');
+  if (head) {
+    head.innerHTML = ['Academic Year','Inquiries','Applications','Admitted','Confirmed','Enrolled','Inq→App','App→Adm','Adm→Conf','Conf→Enr']
+      .map(h => `<th class="raw-th">${h}</th>`).join('');
+  }
+
+  const tbody = document.getElementById('raw-table-body');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--txl);">No data available.</td></tr>';
+    return;
+  }
+
+  const makeRow = (r, cls) => `<tr class="${cls}">
+    <td class="raw-td">${r.label}</td>
+    <td class="raw-td">${fmtN(r.inq)}</td>
+    <td class="raw-td">${fmtN(r.app)}</td>
+    <td class="raw-td">${fmtN(r.adm)}</td>
+    <td class="raw-td">${fmtN(r.conf)}</td>
+    <td class="raw-td">${fmtN(r.enr)}</td>
+    <td class="raw-td">${fmtP(r.app, r.inq)}</td>
+    <td class="raw-td">${fmtP(r.adm, r.app)}</td>
+    <td class="raw-td">${fmtP(r.conf, r.adm)}</td>
+    <td class="raw-td">${fmtP(r.enr, r.conf)}</td>
+  </tr>`;
+
+  // 3-year avg row (last 3 complete rows)
+  const last3 = rows.slice(-3);
+  const avg3 = f => {
+    const vals = last3.map(r => r[f]).filter(v => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+  const avgRow = { label: '3-Yr Avg', inq: avg3('inq'), app: avg3('app'), adm: avg3('adm'), conf: avg3('conf'), enr: avg3('enr') };
+
+  tbody.innerHTML = rows.map(r => makeRow(r, '')).join('') + makeRow(avgRow, 'raw-avg-row');
 }
 
 // ── CSV Export ──────────────────────────────────────────────
