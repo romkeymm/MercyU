@@ -485,7 +485,8 @@ const barColors    = ['#2E1A42','#4A2C6B','#5D3880','#5A8C3C','#3A5C26'];
 const convLabels   = ['Inquiry → Application','Application → Admission','Admission → Confirmed','Confirmed → Enrolled'];
 
 let censusData  = [];   // merged: hardcoded + Supabase live
-let trackData   = [];   // from enrollment_funnel_tracking
+let trackData   = [];   // from funnel_weekly_tracking (weekly snapshots)
+let weeklyMatchWindow = 14; // days: match snapshots within 14 days of today's DOY
 let curTerm     = 'Fall';
 let windowYears = 3;
 let forecastChart = null;
@@ -524,86 +525,49 @@ const SEED_CENSUS = [
 ];
 
 // ── Hardcoded tracking-point snapshots (mid-cycle counts from spreadsheets) ──
-const SEED_TRACKING = [
-  // Spring tracking points (date, academic_year, term, inq, app, adm, conf)
-  { snapshot_date:'2017-01-18', academic_year:'AY16-17', term:'Spring', inquiries:166,  applications:96,  admissions:36,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2017-03-18', academic_year:'AY16-17', term:'Spring', inquiries:310,  applications:184, admissions:69,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2017-04-21', academic_year:'AY16-17', term:'Spring', inquiries:594,  applications:318, admissions:107, confirmed:16,  enrolled:null },
-  { snapshot_date:'2018-01-18', academic_year:'AY17-18', term:'Spring', inquiries:168,  applications:90,  admissions:33,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2018-03-18', academic_year:'AY17-18', term:'Spring', inquiries:333,  applications:180, admissions:59,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2018-04-21', academic_year:'AY17-18', term:'Spring', inquiries:454,  applications:268, admissions:93,  confirmed:26,  enrolled:null },
-  { snapshot_date:'2019-01-18', academic_year:'AY18-19', term:'Spring', inquiries:195,  applications:115, admissions:49,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2019-03-18', academic_year:'AY18-19', term:'Spring', inquiries:404,  applications:260, admissions:103, confirmed:0,   enrolled:null },
-  { snapshot_date:'2019-04-21', academic_year:'AY18-19', term:'Spring', inquiries:683,  applications:361, admissions:139, confirmed:0,   enrolled:null },
-  { snapshot_date:'2020-01-18', academic_year:'AY19-20', term:'Spring', inquiries:381,  applications:171, admissions:73,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2020-03-18', academic_year:'AY19-20', term:'Spring', inquiries:647,  applications:361, admissions:154, confirmed:0,   enrolled:null },
-  { snapshot_date:'2020-04-21', academic_year:'AY19-20', term:'Spring', inquiries:838,  applications:502, admissions:218, confirmed:3,   enrolled:null },
-  { snapshot_date:'2021-01-18', academic_year:'AY20-21', term:'Spring', inquiries:254,  applications:216, admissions:67,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2021-03-18', academic_year:'AY20-21', term:'Spring', inquiries:522,  applications:466, admissions:190, confirmed:0,   enrolled:null },
-  { snapshot_date:'2021-04-21', academic_year:'AY20-21', term:'Spring', inquiries:725,  applications:647, admissions:246, confirmed:1,   enrolled:null },
-  { snapshot_date:'2022-01-18', academic_year:'AY21-22', term:'Spring', inquiries:374,  applications:181, admissions:87,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2022-03-18', academic_year:'AY21-22', term:'Spring', inquiries:520,  applications:419, admissions:164, confirmed:3,   enrolled:null },
-  { snapshot_date:'2022-04-21', academic_year:'AY21-22', term:'Spring', inquiries:621,  applications:543, admissions:210, confirmed:3,   enrolled:null },
-  { snapshot_date:'2023-01-18', academic_year:'AY22-23', term:'Spring', inquiries:381,  applications:171, admissions:73,  confirmed:0,   enrolled:null },
-  { snapshot_date:'2023-03-18', academic_year:'AY22-23', term:'Spring', inquiries:647,  applications:361, admissions:154, confirmed:0,   enrolled:null },
-  { snapshot_date:'2023-04-21', academic_year:'AY22-23', term:'Spring', inquiries:838,  applications:502, admissions:218, confirmed:3,   enrolled:null },
-  // Summer tracking points
-  { snapshot_date:'2021-01-18', academic_year:'AY20-21', term:'Summer', inquiries:419, applications:378, admissions:183, confirmed:0,   enrolled:null },
-  { snapshot_date:'2021-03-15', academic_year:'AY20-21', term:'Summer', inquiries:656, applications:572, admissions:244, confirmed:77,  enrolled:null },
-  { snapshot_date:'2022-01-18', academic_year:'AY21-22', term:'Summer', inquiries:431, applications:372, admissions:147, confirmed:1,   enrolled:null },
-  { snapshot_date:'2022-03-15', academic_year:'AY21-22', term:'Summer', inquiries:530, applications:506, admissions:210, confirmed:39,  enrolled:null },
-  { snapshot_date:'2023-01-18', academic_year:'AY22-23', term:'Summer', inquiries:218, applications:264, admissions:127, confirmed:6,   enrolled:null },
-  { snapshot_date:'2023-03-15', academic_year:'AY22-23', term:'Summer', inquiries:380, applications:432, admissions:212, confirmed:3,   enrolled:null },
-  { snapshot_date:'2024-01-18', academic_year:'AY23-24', term:'Summer', inquiries:700, applications:595, admissions:255, confirmed:5,   enrolled:null },
-  { snapshot_date:'2024-03-15', academic_year:'AY23-24', term:'Summer', inquiries:873, applications:810, admissions:349, confirmed:null,enrolled:null },
-  // Fall tracking points (from FA25 spreadsheet)
-  { snapshot_date:'2024-07-29', academic_year:'AY24-25', term:'Fall', inquiries:1514, applications:917, admissions:399, confirmed:0,   enrolled:null },
-  { snapshot_date:'2024-05-17', academic_year:'AY24-25', term:'Fall', inquiries:1916, applications:1578,admissions:697, confirmed:233, enrolled:null },
-  // Current AY25-26 in-progress (Summer)
-  { snapshot_date:'2026-01-10', academic_year:'AY25-26', term:'Summer', inquiries:null, applications:668, admissions:407, confirmed:78,  enrolled:null },
-];
+const SEED_TRACKING = [];
+// SEED_TRACKING is intentionally empty — all weekly tracking data
+// is now stored in Supabase funnel_weekly_tracking table (147 rows)
+// and loaded via fetchAll() below.
 
-// ── Data loading ─────────────────────────────────────────────────────────────
+// ── Data loading ─────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  // Start immediately with seed data so the page is useful even before Supabase responds
+  // Start with seed census data so the page works immediately
   censusData = [...SEED_CENSUS];
-  trackData  = [...SEED_TRACKING];
+  trackData  = [];
   buildTrendChart();
   recalc();
 
   setStatus('loading', 'Syncing with Supabase...');
   try {
-    const [ayRes, trackRes] = await Promise.all([
+    const [ayRes, weeklyRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: HEADERS }),
-      fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_tracking?select=*&order=academic_year,snapshot_date`, { headers: HEADERS })
-        .catch(() => ({ ok: true, json: async () => [] }))
+      fetch(`${SUPABASE_URL}/rest/v1/funnel_weekly_tracking?select=*&order=term,academic_year,snapshot_date`, { headers: HEADERS }),
     ]);
 
+    // Merge live census data
     if (ayRes.ok) {
       const liveAY = await ayRes.json();
       if (liveAY.length > 0) {
-        // Merge: live data wins over seed data for same academic_year+term
         const liveKeys = new Set(liveAY.map(r => `${r.academic_year}|${r.term||'Annual'}`));
         const seedFiltered = SEED_CENSUS.filter(r => !liveKeys.has(`${r.academic_year}|${r.term||'Annual'}`));
         censusData = [...seedFiltered, ...liveAY];
       }
     }
 
-    if (trackRes.ok) {
-      const liveTrack = await trackRes.json();
-      if (liveTrack.length > 0) {
-        const liveKeys = new Set(liveTrack.map(r => `${r.academic_year}|${r.term}|${r.snapshot_date}`));
-        const seedFiltered = SEED_TRACKING.filter(r => !liveKeys.has(`${r.academic_year}|${r.term}|${r.snapshot_date}`));
-        trackData = [...seedFiltered, ...liveTrack];
-      }
+    // Load weekly tracking data (the new granular table)
+    if (weeklyRes.ok) {
+      const weeklyRows = await weeklyRes.json();
+      trackData = weeklyRows;
+      weeklyMatchWindow = 14; // tighter window with weekly data
     }
 
     const n = censusData.length;
-    setStatus('live', `Live · ${n} census records · ${trackData.length} tracking snapshots`);
+    setStatus('live', `Live · ${n} census records · ${trackData.length} weekly snapshots`);
     document.getElementById('footer-tx').textContent =
-      `Source: Supabase + spreadsheet data · ${n} census records · Last synced ${new Date().toLocaleTimeString()}`;
+      `Source: Supabase · enrollment_funnel_ay + funnel_weekly_tracking · ${trackData.length} snapshots · Synced ${new Date().toLocaleTimeString()}`;
 
-    // Rebuild charts with merged data
+    // Rebuild with merged data
     if (trendChart) { trendChart.destroy(); trendChart = null; }
     buildTrendChart();
     recalc();
@@ -615,12 +579,6 @@ async function fetchAll() {
   }
 }
 
-function setStatus(state, msg) {
-  const dot = document.getElementById('status-dot');
-  dot.className = 'status-dot' + (state === 'live' ? ' live' : '');
-  dot.style.background = state === 'live' ? '#3A6D11' : state === 'error' ? '#791F1F' : '#999';
-  document.getElementById('status-tx').textContent = msg;
-}
 
 // ── Term / window controls ────────────────────────────────────────────────────
 function setTerm(term, btn) {
@@ -656,45 +614,53 @@ function getTrackingRows() {
 }
 
 // ── Find closest historical tracking snapshot to today's date ────────────────
-// Returns {census_row, tracking_row} pairs for years that have a snapshot near today's day-of-year
+// Uses funnel_weekly_tracking data, 14-day DOY window, 3-year avg
+// Returns { lifts, matchedDates, avgMatchDate } for display transparency
 function getHistoricalLifts(inputs) {
   const today = new Date();
   const todayDOY = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
 
-  const windowCensus = getWindowRows();
-  const lifts = []; // array of per-year remaining lift objects
+  const windowCensus = getWindowRows(); // 3 most recent complete years
+  const lifts = [];
+  const matchedDates = [];
 
   for (const censusRow of windowCensus) {
     const ay = censusRow.academic_year;
-    // Find tracking snapshots for this ay+term
+    // Find weekly snapshots for this ay+term from Supabase data
     const snapshots = trackData
       .filter(r => r.academic_year === ay && r.term === curTerm)
       .sort((a, b) => a.snapshot_date > b.snapshot_date ? 1 : -1);
 
     if (!snapshots.length) continue;
 
-    // Find snapshot closest to today's day-of-year
-    const closest = snapshots.reduce((best, s) => {
+    // Find snapshot closest to today's DOY, within 14-day window
+    let best = null;
+    let bestDiff = Infinity;
+    for (const s of snapshots) {
       const d = new Date(s.snapshot_date);
       const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
       const diff = Math.abs(doy - todayDOY);
-      if (!best || diff < best.diff) return { row: s, diff };
-      return best;
-    }, null);
+      if (diff < bestDiff) { best = s; bestDiff = diff; }
+    }
 
-    if (!closest || closest.diff > 60) continue; // only use if within 60 days of today's DOY
+    if (!best || bestDiff > weeklyMatchWindow) continue;
 
-    // Calculate lift = census final - snapshot count (for each stage)
+    // Get official census final from enrollment_funnel_ay (Supabase) or SEED_CENSUS
+    const censusFields = ['applications', 'admissions', 'confirmed', 'enrolled'];
+    const censusFieldMap = { applications: 'applications', admissions: 'admissions', confirmed: 'confirmed', enrolled: 'enrolled' };
+
+    // Compute lift = census_final - snapshot_count for each stage (excluding inquiries)
     const lift = {};
-    stageFields.forEach(f => {
-      const snap = closest.row[f];
-      const final = censusRow[f];
-      lift[f] = (snap != null && final != null) ? Math.max(0, final - snap) : null;
+    censusFields.forEach(f => {
+      const snap  = best[f];
+      const final = censusRow[f] ?? censusRow[f.replace('applications','applications').replace('admissions','admissions')];
+      lift[f] = (snap != null && final != null && final > 0) ? Math.max(0, final - snap) : null;
     });
     lifts.push(lift);
+    matchedDates.push(best.snapshot_date);
   }
 
-  return lifts;
+  return { lifts, matchedDates };
 }
 
 function getWindowRows() {
@@ -731,17 +697,21 @@ function recalc() {
   const allAvgs  = stageFields.map(f => avg(allRows, f));
 
   // Attempt tracking-point-based lift (more accurate when we have date-matched snapshots)
-  const historicalLifts = getHistoricalLifts(inputs);
+  const { lifts: historicalLifts, matchedDates } = getHistoricalLifts(inputs);
   const hasTrackingLifts = historicalLifts.length >= 1;
 
+  // Map stage field names: stageFields uses inquiries/applications/admissions/confirmed/enrolled
+  // but funnel_weekly_tracking uses applications/admissions/confirmed/enrolled (no inquiries)
+  const weeklyFieldMap = ['inquiries','applications','admissions','confirmed','enrolled'];
+
   // Remaining lift per stage:
-  // If we have tracking-point matches → use avg(census - snapshot at this DOY)
-  // Otherwise → use avg(census) - current (conservative floor at 0)
   const remaining = stageFields.map((f, i) => {
     if (!hasInput || inputs[i] === null) return histAvgs[i];
 
     if (hasTrackingLifts) {
-      const trackLifts = historicalLifts.map(l => l[f]).filter(v => v != null);
+      // Map stageField to weekly tracking field (inquiries has no weekly data → fallback)
+      const wf = weeklyFieldMap[i];
+      const trackLifts = historicalLifts.map(l => l[wf]).filter(v => v != null);
       if (trackLifts.length) {
         return trackLifts.reduce((a, b) => a + b, 0) / trackLifts.length;
       }
@@ -815,8 +785,12 @@ function recalc() {
     `${curTerm} term · ${allRows.length} years`;
   document.getElementById('conv-window-note').textContent =
     `— ${wLabel}`;
+  const matchNote = hasTrackingLifts && matchedDates.length
+    ? ` · matched to ${matchedDates.length} snapshot${matchedDates.length>1?'s':''} near this date (${matchedDates.map(d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(', ')})`
+    : ' · no weekly snapshots within 14 days — using census avg lift';
+
   document.getElementById('growth-note').textContent = hasInput
-    ? `Avg remaining lift based on ${windowRows.length} years of ${curTerm} census data (${wLabel} window)${hasTrackingLifts ? ` · ${historicalLifts.length} date-matched tracking snapshots used` : ' · no date-matched snapshots — using census avg lift'}. Forecast = current + expected remaining growth.`
+    ? `Remaining lift: avg of ${windowRows.length} years (${wLabel} window)${matchNote}. Forecast = current + expected remaining growth.`
     : `Enter today's funnel counts above to generate a forecast.`;
 
   // KPI strip (stages 0–3 standard; stage 4 = enrolled range)
