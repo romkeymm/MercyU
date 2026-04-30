@@ -586,15 +586,19 @@
   async function loadKPIs() {
     try {
       // ── Fetch all data sources in parallel ──
-      const [ayRes, reconRes, weeklyRes] = await Promise.all([
+      const [ayRes, reconRes, weeklyRes, termRes] = await Promise.all([
         fetch(`${SB_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: SB_HDR }),
         fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=academic_year,transition_type,official_start,official_end,is_forecast,budget_target&order=academic_year,transition_type`, { headers: SB_HDR }),
         fetch(`${SB_URL}/rest/v1/funnel_weekly_tracking?select=academic_year,term,snapshot_date,confirmed,enrolled,is_current_year&order=term,academic_year,snapshot_date`, { headers: SB_HDR }),
+        fetch(`${SB_URL}/rest/v1/enrollment_funnel_term?select=academic_year,term,enrolled,confirmed,admissions&order=academic_year`, { headers: SB_HDR }),
       ]);
       const rows    = ayRes.ok    ? await ayRes.json()    : [];
       const recon   = reconRes.ok ? await reconRes.json() : [];
       const weekly  = weeklyRes.ok? await weeklyRes.json(): [];
-      const census  = rows.length ? rows : SEED;
+      const termRows= termRes.ok  ? await termRes.json()  : [];
+      // Use enrollment_funnel_term for per-term census (has term breakdown)
+      // Fall back to SEED if Supabase offline
+      const census  = termRows.length ? termRows : SEED;
 
       // ─────────────────────────────────────────────────────────────────────────
       // Transition ordering within an AY: summer_to_fall → fall_to_spring → spring_to_summer
@@ -671,9 +675,10 @@
         }
       }
 
-      // ── KPI 3: AY Total New Students ──
-      const latestAY = census.map(r => r.academic_year).sort().pop();
-      const latestRows = census.filter(r => r.academic_year === latestAY);
+      // ── KPI 3: AY Total New Students — from annual table ──
+      const ayRows = rows.length ? rows : SEED;
+      const latestAY = ayRows.map(r => r.academic_year).sort().pop();
+      const latestRows = ayRows.filter(r => r.academic_year === latestAY);
       const totalNew = latestRows.reduce((sum, r) => sum + (r.enrolled || 0), 0);
       const elNew = document.getElementById('m-new-students');
       const elNewNote = document.getElementById('m-new-students-note');
