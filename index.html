@@ -293,13 +293,13 @@
     </div>
     <div class="metric">
       <div class="metric-val placeholder" id="m-forecast-total">—</div>
-      <div class="metric-lbl">Forecast Total Enrollment</div>
-      <div class="metric-note">Pulls from Enrollment Forecast</div>
+      <div class="metric-lbl" id="m-forecast-total-lbl">Forecast Total Enrollment</div>
+      <div class="metric-note" id="m-forecast-total-note">Pulls from Enrollment Forecast</div>
     </div>
     <div class="metric">
       <div class="metric-val placeholder" id="m-forecast-new" style="font-size:16px;line-height:1.35;">—</div>
-      <div class="metric-lbl">Forecast New Enrollment</div>
-      <div class="metric-note" id="m-forecast-new-note">Pulls from Enrollment Forecast</div>
+      <div class="metric-lbl" id="m-forecast-new-lbl">Forecast New Enrollment</div>
+      <div class="metric-note" id="m-forecast-new-note">Pulls from New Student Forecast</div>
     </div>
   </div>
 
@@ -585,50 +585,96 @@
 
   async function loadKPIs() {
     try {
-      // ── Fetch both data sources in parallel ──
-      const [ayRes, reconRes] = await Promise.all([
+      // ── Fetch all data sources in parallel ──
+      const [ayRes, reconRes, weeklyRes] = await Promise.all([
         fetch(`${SB_URL}/rest/v1/enrollment_funnel_ay?select=*&order=academic_year`, { headers: SB_HDR }),
-        fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=academic_year,transition_type,official_end,is_forecast&order=academic_year,transition_type`, { headers: SB_HDR }),
+        fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=academic_year,transition_type,official_start,official_end,is_forecast,budget_target&order=academic_year,transition_type`, { headers: SB_HDR }),
+        fetch(`${SB_URL}/rest/v1/funnel_weekly_tracking?select=academic_year,term,snapshot_date,confirmed,enrolled,is_current_year&order=term,academic_year,snapshot_date`, { headers: SB_HDR }),
       ]);
-      const rows   = ayRes.ok   ? await ayRes.json()   : [];
-      const recon  = reconRes.ok ? await reconRes.json() : [];
-      const census = rows.length ? rows : SEED;
+      const rows    = ayRes.ok    ? await ayRes.json()    : [];
+      const recon   = reconRes.ok ? await reconRes.json() : [];
+      const weekly  = weeklyRes.ok? await weeklyRes.json(): [];
+      const census  = rows.length ? rows : SEED;
 
-      // ── Total Enrollment — most recent actual term from enrollment_reconciliation ──
-      // Map transition_type → which term's enrollment it represents (official_end)
-      // fall_to_spring.official_end   = Spring enrollment
-      // spring_to_summer.official_end = Summer enrollment
-      // summer_to_fall.official_end   = Fall enrollment
-      const termFromTransition = {
-        fall_to_spring:   'Spring',
-        spring_to_summer: 'Summer',
-        summer_to_fall:   'Fall',
+      // ─────────────────────────────────────────────────────────────────────────
+      // Transition ordering within an AY: summer_to_fall → fall_to_spring → spring_to_summer
+      // Their official_end represents: Fall, Spring, Summer respectively
+      // ─────────────────────────────────────────────────────────────────────────
+      const termFromTransition  = { fall_to_spring:'Spring', spring_to_summer:'Summer', summer_to_fall:'Fall' };
+      const chronoOrder         = { summer_to_fall:0, fall_to_spring:1, spring_to_summer:2 };
+      const nextTransition      = { summer_to_fall:'fall_to_spring', fall_to_spring:'spring_to_summer', spring_to_summer:'summer_to_fall' };
+      const nextAY = ay => {
+        // spring_to_summer loops to the SAME AY's summer_to_fall
+        // summer_to_fall is the last in an AY; "next" wraps to next AY's fall_to_spring
+        return ay; // handled below by checking transition type
       };
-      // Find most recent actual (is_forecast=false) row with a non-null official_end
-      const actualRows = recon
-        .filter(r => r.is_forecast === false && r.official_end != null)
-        .sort((a, b) => {
-          if (a.academic_year !== b.academic_year) return a.academic_year > b.academic_year ? 1 : -1;
-          const order = { summer_to_fall: 0, fall_to_spring: 1, spring_to_summer: 2 };
-          return (order[a.transition_type] ?? 9) - (order[b.transition_type] ?? 9);
-        });
 
+      // Sort all recon rows chronologically
+      const sortedRecon = [...recon].sort((a, b) => {
+        if (a.academic_year !== b.academic_year) return a.academic_year > b.academic_year ? 1 : -1;
+        return (chronoOrder[a.transition_type] ?? 9) - (chronoOrder[b.transition_type] ?? 9);
+      });
+
+      // ── KPI 1: Total Enrollment — most recent actual ──
+      const actualRows = sortedRecon.filter(r => r.is_forecast === false && r.official_end != null);
       const mostRecent = actualRows.length ? actualRows[actualRows.length - 1] : null;
       const elTotalEnr    = document.getElementById('m-total-enr');
       const elTotalEnrLbl = document.getElementById('m-total-enr-lbl');
+      let mostRecentTerm = null;
+      let mostRecentAY   = null;
       if (mostRecent && elTotalEnr) {
-        const termName = termFromTransition[mostRecent.transition_type] || '';
+        mostRecentTerm = termFromTransition[mostRecent.transition_type];
+        mostRecentAY   = mostRecent.academic_year;
         elTotalEnr.textContent = fmt(mostRecent.official_end);
         elTotalEnr.classList.remove('placeholder');
         elTotalEnr.style.color = 'var(--p)';
-        if (elTotalEnrLbl) elTotalEnrLbl.textContent = `Total ${termName} Enrollment`;
+        if (elTotalEnrLbl) elTotalEnrLbl.textContent = `Total ${mostRecentTerm} Enrollment`;
       }
 
-      // AY Total New Students — sum enrolled across all terms for most recent AY
+      // ── KPI 2: Forecast Total Enrollment — next term after most recent actual ──
+      // Find the row immediately after mostRecent in the chronological sorted list
+      const elFcTotal     = document.getElementById('m-forecast-total');
+      const elFcTotalLbl  = document.getElementById('m-forecast-total-lbl');
+      const elFcTotalNote = document.getElementById('m-forecast-total-note');
+      if (mostRecent && elFcTotal) {
+        // Next transition: within same AY if possible, else next AY
+        let nextRow = null;
+        const mostRecentIdx = sortedRecon.findIndex(
+          r => r.academic_year === mostRecent.academic_year && r.transition_type === mostRecent.transition_type
+        );
+        if (mostRecentIdx >= 0 && mostRecentIdx < sortedRecon.length - 1) {
+          nextRow = sortedRecon[mostRecentIdx + 1];
+        }
+
+        if (nextRow) {
+          const nextTerm = termFromTransition[nextRow.transition_type];
+          const nextAYLabel = nextRow.academic_year;
+          elFcTotalLbl.textContent = `Forecast ${nextTerm} Enrollment`;
+
+          if (nextRow.official_end != null) {
+            // Already saved — use it directly
+            elFcTotal.textContent = fmt(nextRow.official_end);
+            elFcTotal.classList.remove('placeholder');
+            elFcTotal.style.color = 'var(--summer)';
+            if (elFcTotalNote) elFcTotalNote.textContent = `${nextAYLabel} · Saved forecast`;
+          } else if (nextRow.official_start != null) {
+            // Not saved yet — compute from reconciliation start + 3-yr avg rates
+            // Use the same seed data averages as the enrollment forecast dashboard
+            // Fallback: show the official_start as a lower bound with "est." label
+            elFcTotal.textContent = `~${fmt(nextRow.official_start)}`;
+            elFcTotal.classList.remove('placeholder');
+            elFcTotal.style.color = 'var(--summer)';
+            if (elFcTotalNote) elFcTotalNote.textContent = `${nextAYLabel} · Starting count (save forecast to update)`;
+          } else {
+            if (elFcTotalNote) elFcTotalNote.textContent = `${nextAYLabel} · Save from Enrollment Forecast to populate`;
+          }
+        }
+      }
+
+      // ── KPI 3: AY Total New Students ──
       const latestAY = census.map(r => r.academic_year).sort().pop();
       const latestRows = census.filter(r => r.academic_year === latestAY);
       const totalNew = latestRows.reduce((sum, r) => sum + (r.enrolled || 0), 0);
-
       const elNew = document.getElementById('m-new-students');
       const elNewNote = document.getElementById('m-new-students-note');
       if (totalNew > 0) {
@@ -638,34 +684,82 @@
         elNewNote.textContent = latestAY + ' · ' + latestRows.length + ' term' + (latestRows.length !== 1 ? 's' : '');
       }
 
-      // Forecast New Enrollment range — 3-yr rolling avg, all terms combined
-      // Compute range per term, then sum for AY total range
-      const terms = ['Fall', 'Spring', 'Summer'];
-      let totalLow = 0, totalMid = 0, totalHigh = 0;
-      let hasRange = false;
-      terms.forEach(term => {
-        const termRows = census.filter(r => r.term === term);
-        if (!termRows.length) return;
-        const range = calcEnrolledRange(termRows, 3);
-        if (range) {
-          totalLow  += range.low  || 0;
-          totalMid  += range.mid  || 0;
-          totalHigh += range.high || 0;
-          hasRange = true;
-        }
-      });
+      // ── KPI 4: Forecast New Enrollment — next term only, from student forecast logic ──
+      // Determine which term is the "next" term to forecast
+      const elFcNew     = document.getElementById('m-forecast-new');
+      const elFcNewLbl  = document.getElementById('m-forecast-new-lbl');
+      const elFcNewNote = document.getElementById('m-forecast-new-note');
 
-      const elFc = document.getElementById('m-forecast-new');
-      const elFcNote = document.getElementById('m-forecast-new-note');
-      if (hasRange) {
-        elFc.innerHTML =
-          `<span style="font-size:11px;color:var(--txl);font-weight:400;">low </span>${fmt(totalLow)}<br>` +
-          `<span style="font-size:11px;color:var(--txl);font-weight:400;">mid </span>${fmt(totalMid)}<br>` +
-          `<span style="font-size:11px;color:var(--txl);font-weight:400;">high </span>${fmt(totalHigh)}`;
-        elFc.classList.remove('placeholder');
-        elFc.style.color = 'var(--gd)';
-        elFcNote.textContent = '3-yr avg · Conf→Enr + Adm→Enr rates';
+      // Use same term as Forecast Total Enrollment
+      let forecastTerm = null;
+      if (mostRecentTerm) {
+        const termSequence = { 'Spring':'Summer', 'Summer':'Fall', 'Fall':'Spring' };
+        forecastTerm = termSequence[mostRecentTerm];
       }
+
+      if (forecastTerm && elFcNew) {
+        if (elFcNewLbl) elFcNewLbl.textContent = `Forecast ${forecastTerm} New Enrollment`;
+
+        // Get historical census rows for this term (from enrollment_funnel_ay)
+        const termCensus = census.filter(r => r.term === forecastTerm);
+
+        // Check if there's a current-year weekly snapshot to use for date-matched lift
+        const today = new Date();
+        const todayDOY = Math.floor((today - new Date(today.getFullYear(),0,0)) / 86400000);
+        const curYearWeekly = weekly.filter(r => r.term === forecastTerm && r.is_current_year);
+
+        // Find snapshot within 14 days of today's DOY for lift calculation
+        let liftNote = '3-yr avg';
+        let fcConfirmed = null;
+
+        if (curYearWeekly.length) {
+          // Find closest snapshot to today
+          let bestSnap = null, bestDiff = Infinity;
+          for (const s of curYearWeekly) {
+            const d = new Date(s.snapshot_date + 'T12:00:00');
+            const doy = Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000);
+            const diff = Math.abs(doy - todayDOY);
+            if (diff < bestDiff) { bestSnap = s; bestDiff = diff; }
+          }
+          if (bestSnap && bestDiff <= 14) {
+            fcConfirmed = bestSnap.confirmed;
+            liftNote = `date-matched · ${new Date(bestSnap.snapshot_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+          }
+        }
+
+        const range = calcEnrolledRange(termCensus, 3);
+        if (range) {
+          let low = range.low, mid = range.mid, high = range.high;
+
+          // If we have a live confirmed count, compute range using avg rates × live confirmed
+          if (fcConfirmed != null && termCensus.length >= 2) {
+            const sorted = [...termCensus].sort((a,b) => a.academic_year > b.academic_year ? 1 : -1).slice(-3);
+            const confRates = sorted.map(r => r.confirmed && r.enrolled ? r.enrolled/r.confirmed : null).filter(Boolean);
+            const admRates  = sorted.map(r => r.admissions && r.enrolled ? r.enrolled/r.admissions : null).filter(Boolean);
+            if (confRates.length) {
+              const avgConf = confRates.reduce((a,b)=>a+b,0)/confRates.length;
+              const minConf = Math.min(...confRates);
+              low  = Math.round(fcConfirmed * minConf);
+              mid  = Math.round(fcConfirmed * avgConf);
+              // high uses admitted × adm rate (fall back to census avg if no live admitted)
+              if (admRates.length) {
+                const avgAdm = admRates.reduce((a,b)=>a+b,0)/admRates.length;
+                const avgFcAdm = sorted.map(r=>r.admissions).filter(Boolean).reduce((a,b)=>a+b,0)/(sorted.filter(r=>r.admissions).length||1);
+                high = Math.round(avgFcAdm * avgAdm);
+              }
+            }
+          }
+
+          elFcNew.innerHTML =
+            `<span style="font-size:11px;color:var(--txl);font-weight:400;">low </span>${fmt(low)}<br>` +
+            `<span style="font-size:11px;color:var(--txl);font-weight:400;">mid </span>${fmt(mid)}<br>` +
+            (high ? `<span style="font-size:11px;color:var(--txl);font-weight:400;">high </span>${fmt(high)}` : '');
+          elFcNew.classList.remove('placeholder');
+          elFcNew.style.color = 'var(--gd)';
+          if (elFcNewNote) elFcNewNote.textContent = `${forecastTerm} · 3-yr avg rates · ${liftNote}`;
+        }
+      }
+
     } catch(e) {
       console.warn('KPI fetch error:', e);
     }
