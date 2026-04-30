@@ -168,6 +168,7 @@
       </div>
     </div>
     <div class="hdr-r">
+      <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
       <a href="admissions-funnel.html" class="btn btn-ghost">Admissions Funnel →</a>
       <a href="student-forecast.html" class="btn btn-ghost">New Student Forecast →</a>
     </div>
@@ -245,7 +246,10 @@
     <div class="recon-section">
       <div class="section-hd">
         Term-by-term reconciliation
-        <span class="section-hd-note">Yellow cells = manual input · Auto-calc shown in italics when no input entered</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="section-hd-note">Yellow cells = manual input · Auto-calc shown when no input entered</span>
+          <button onclick="saveCurrentAYToSupabase()" class="btn btn-green" style="font-size:10px;padding:4px 12px;">Save to Supabase</button>
+        </div>
       </div>
       <div class="recon-blocks" id="recon-blocks"></div>
     </div>
@@ -324,47 +328,47 @@
 
 // Historical seed: Fall→Spring transitions
 const F2S = [
-  {ay:'AY15-16',offFall:789,fallGrads:-32,fallGradPct:-0.0406,nonRet:-63,nrPct:-0.0832,retained:694,retPct:0.9168,newStudents:90,othersRet:8,offSpring:792,spTarget:824},
-  {ay:'AY16-17',offFall:771,fallGrads:-54,fallGradPct:-0.0700,nonRet:-53,nrPct:-0.0739,retained:664,retPct:0.9261,newStudents:89,othersRet:7,offSpring:760,spTarget:869},
-  {ay:'AY17-18',offFall:758,fallGrads:-89,fallGradPct:-0.1174,nonRet:-59,nrPct:-0.0882,retained:610,retPct:0.9118,newStudents:63,othersRet:12,offSpring:685,spTarget:766},
-  {ay:'AY18-19',offFall:729,fallGrads:-69,fallGradPct:-0.0947,nonRet:-72,nrPct:-0.1091,retained:588,retPct:0.8909,newStudents:110,othersRet:24,offSpring:722,spTarget:714},
-  {ay:'AY19-20',offFall:795,fallGrads:-75,fallGradPct:-0.0943,nonRet:-55,nrPct:-0.0764,retained:665,retPct:0.9236,newStudents:116,othersRet:8,offSpring:789,spTarget:786},
-  {ay:'AY20-21',offFall:795,fallGrads:-121,fallGradPct:-0.1522,nonRet:-60,nrPct:-0.0890,retained:614,retPct:0.9110,newStudents:151,othersRet:11,offSpring:776,spTarget:730},
-  {ay:'AY21-22',offFall:840,fallGrads:-107,fallGradPct:-0.1274,nonRet:-77,nrPct:-0.1050,retained:656,retPct:0.8950,newStudents:102,othersRet:7,offSpring:765,spTarget:781},
-  {ay:'AY22-23',offFall:765,fallGrads:-101,fallGradPct:-0.1320,nonRet:-85,nrPct:-0.1280,retained:579,retPct:0.8720,newStudents:128,othersRet:14,offSpring:721,spTarget:783},
-  {ay:'AY23-24',offFall:755,fallGrads:-108,fallGradPct:-0.1430,nonRet:-82,nrPct:-0.1267,retained:565,retPct:0.8733,newStudents:149,othersRet:21,offSpring:735,spTarget:795},
-  {ay:'AY24-25',offFall:854,fallGrads:-135,fallGradPct:-0.1581,nonRet:-131,nrPct:-0.1822,retained:588,retPct:0.8178,newStudents:169,othersRet:24,offSpring:781,spTarget:815},
-  {ay:'AY25-26',offFall:931,fallGrads:-100,fallGradPct:-0.1074,nonRet:-116,nrPct:-0.1396,retained:715,retPct:0.8604,newStudents:144,othersRet:10,offSpring:869,spTarget:787},
+  {ay:'AY15-16',yearLabel:'Fall 15→Sp 16',offFall:789,fallGrads:-32,fallGradPct:-0.0406,nonRet:-63,nrPct:-0.0832,retained:694,retPct:0.9168,newStudents:90,othersRet:8,offSpring:792,spTarget:824},
+  {ay:'AY16-17',yearLabel:'Fall 16→Sp 17',offFall:771,fallGrads:-54,fallGradPct:-0.0700,nonRet:-53,nrPct:-0.0739,retained:664,retPct:0.9261,newStudents:89,othersRet:7,offSpring:760,spTarget:869},
+  {ay:'AY17-18',yearLabel:'Fall 17→Sp 18',offFall:758,fallGrads:-89,fallGradPct:-0.1174,nonRet:-59,nrPct:-0.0882,retained:610,retPct:0.9118,newStudents:63,othersRet:12,offSpring:685,spTarget:766},
+  {ay:'AY18-19',yearLabel:'Fall 18→Sp 19',offFall:729,fallGrads:-69,fallGradPct:-0.0947,nonRet:-72,nrPct:-0.1091,retained:588,retPct:0.8909,newStudents:110,othersRet:24,offSpring:722,spTarget:714},
+  {ay:'AY19-20',yearLabel:'Fall 19→Sp 20',offFall:795,fallGrads:-75,fallGradPct:-0.0943,nonRet:-55,nrPct:-0.0764,retained:665,retPct:0.9236,newStudents:116,othersRet:8,offSpring:789,spTarget:786},
+  {ay:'AY20-21',yearLabel:'Fall 20→Sp 21',offFall:795,fallGrads:-121,fallGradPct:-0.1522,nonRet:-60,nrPct:-0.0890,retained:614,retPct:0.9110,newStudents:151,othersRet:11,offSpring:776,spTarget:730},
+  {ay:'AY21-22',yearLabel:'Fall 21→Sp 22',offFall:840,fallGrads:-107,fallGradPct:-0.1274,nonRet:-77,nrPct:-0.1050,retained:656,retPct:0.8950,newStudents:102,othersRet:7,offSpring:765,spTarget:781},
+  {ay:'AY22-23',yearLabel:'Fall 22→Sp 23',offFall:765,fallGrads:-101,fallGradPct:-0.1320,nonRet:-85,nrPct:-0.1280,retained:579,retPct:0.8720,newStudents:128,othersRet:14,offSpring:721,spTarget:783},
+  {ay:'AY23-24',yearLabel:'Fall 23→Sp 24',offFall:755,fallGrads:-108,fallGradPct:-0.1430,nonRet:-82,nrPct:-0.1267,retained:565,retPct:0.8733,newStudents:149,othersRet:21,offSpring:735,spTarget:795},
+  {ay:'AY24-25',yearLabel:'Fall 24→Sp 25',offFall:854,fallGrads:-135,fallGradPct:-0.1581,nonRet:-131,nrPct:-0.1822,retained:588,retPct:0.8178,newStudents:169,othersRet:24,offSpring:781,spTarget:815},
+  {ay:'AY25-26',yearLabel:'Fall 25→Sp 26',offFall:931,fallGrads:-100,fallGradPct:-0.1074,nonRet:-116,nrPct:-0.1396,retained:715,retPct:0.8604,newStudents:144,othersRet:10,offSpring:869,spTarget:787},
 ];
 
 // Historical seed: Spring→Summer transitions
 const S2SU = [
-  {ay:'AY15-16',offSpring:792,spGrads:-111,spGradPct:-0.1402,nonRet:-93,nrPct:-0.1366,retained:588,retPct:0.8634,newStudents:66,othersRet:6,offSummer:660,suTarget:715},
-  {ay:'AY16-17',offSpring:760,spGrads:-60,spGradPct:-0.0789,nonRet:-92,nrPct:-0.1314,retained:608,retPct:0.8686,newStudents:61,othersRet:4,offSummer:673,suTarget:699},
-  {ay:'AY17-18',offSpring:683,spGrads:-64,spGradPct:-0.0937,nonRet:-79,nrPct:-0.1276,retained:540,retPct:0.8724,newStudents:61,othersRet:7,offSummer:608,suTarget:675},
-  {ay:'AY18-19',offSpring:722,spGrads:-55,spGradPct:-0.0762,nonRet:-121,nrPct:-0.1814,retained:546,retPct:0.8186,newStudents:79,othersRet:10,offSummer:635,suTarget:655},
-  {ay:'AY19-20',offSpring:789,spGrads:-62,spGradPct:-0.0786,nonRet:-79,nrPct:-0.1087,retained:648,retPct:0.8913,newStudents:85,othersRet:6,offSummer:739,suTarget:708},
-  {ay:'AY20-21',offSpring:776,spGrads:-86,spGradPct:-0.1108,nonRet:-121,nrPct:-0.1754,retained:569,retPct:0.8246,newStudents:100,othersRet:6,offSummer:675,suTarget:698},
-  {ay:'AY21-22',offSpring:765,spGrads:-106,spGradPct:-0.1386,nonRet:-67,nrPct:-0.1017,retained:592,retPct:0.8983,newStudents:66,othersRet:10,offSummer:668,suTarget:708},
-  {ay:'AY22-23',offSpring:721,spGrads:-77,spGradPct:-0.1068,nonRet:-88,nrPct:-0.1366,retained:556,retPct:0.8634,newStudents:91,othersRet:10,offSummer:657,suTarget:679},
-  {ay:'AY23-24',offSpring:735,spGrads:-98,spGradPct:-0.1333,nonRet:-121,nrPct:-0.1900,retained:516,retPct:0.8100,newStudents:141,othersRet:5,offSummer:662,suTarget:731},
-  {ay:'AY24-25',offSpring:781,spGrads:-115,spGradPct:-0.1472,nonRet:-145,nrPct:-0.2177,retained:521,retPct:0.7823,newStudents:170,othersRet:15,offSummer:706,suTarget:777},
-  {ay:'AY25-26',offSpring:869,spGrads:null,spGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offSummer:null,suTarget:709},
+  {ay:'AY15-16',yearLabel:'Sp 16→Su 16',offSpring:792,spGrads:-111,spGradPct:-0.1402,nonRet:-93,nrPct:-0.1366,retained:588,retPct:0.8634,newStudents:66,othersRet:6,offSummer:660,suTarget:715},
+  {ay:'AY16-17',yearLabel:'Sp 17→Su 17',offSpring:760,spGrads:-60,spGradPct:-0.0789,nonRet:-92,nrPct:-0.1314,retained:608,retPct:0.8686,newStudents:61,othersRet:4,offSummer:673,suTarget:699},
+  {ay:'AY17-18',yearLabel:'Sp 18→Su 18',offSpring:683,spGrads:-64,spGradPct:-0.0937,nonRet:-79,nrPct:-0.1276,retained:540,retPct:0.8724,newStudents:61,othersRet:7,offSummer:608,suTarget:675},
+  {ay:'AY18-19',yearLabel:'Sp 19→Su 19',offSpring:722,spGrads:-55,spGradPct:-0.0762,nonRet:-121,nrPct:-0.1814,retained:546,retPct:0.8186,newStudents:79,othersRet:10,offSummer:635,suTarget:655},
+  {ay:'AY19-20',yearLabel:'Sp 20→Su 20',offSpring:789,spGrads:-62,spGradPct:-0.0786,nonRet:-79,nrPct:-0.1087,retained:648,retPct:0.8913,newStudents:85,othersRet:6,offSummer:739,suTarget:708},
+  {ay:'AY20-21',yearLabel:'Sp 21→Su 21',offSpring:776,spGrads:-86,spGradPct:-0.1108,nonRet:-121,nrPct:-0.1754,retained:569,retPct:0.8246,newStudents:100,othersRet:6,offSummer:675,suTarget:698},
+  {ay:'AY21-22',yearLabel:'Sp 22→Su 22',offSpring:765,spGrads:-106,spGradPct:-0.1386,nonRet:-67,nrPct:-0.1017,retained:592,retPct:0.8983,newStudents:66,othersRet:10,offSummer:668,suTarget:708},
+  {ay:'AY22-23',yearLabel:'Sp 23→Su 23',offSpring:721,spGrads:-77,spGradPct:-0.1068,nonRet:-88,nrPct:-0.1366,retained:556,retPct:0.8634,newStudents:91,othersRet:10,offSummer:657,suTarget:679},
+  {ay:'AY23-24',yearLabel:'Sp 24→Su 24',offSpring:735,spGrads:-98,spGradPct:-0.1333,nonRet:-121,nrPct:-0.1900,retained:516,retPct:0.8100,newStudents:141,othersRet:5,offSummer:662,suTarget:731},
+  {ay:'AY24-25',yearLabel:'Sp 25→Su 25',offSpring:781,spGrads:-115,spGradPct:-0.1472,nonRet:-145,nrPct:-0.2177,retained:521,retPct:0.7823,newStudents:170,othersRet:15,offSummer:706,suTarget:777},
+  {ay:'AY25-26',yearLabel:'Sp 26→Su 26',offSpring:869,spGrads:null,spGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offSummer:null,suTarget:709},
 ];
 
 // Historical seed: Summer→Fall transitions
 const SU2F = [
-  {ay:'AY15-16',offSummer:660,suGrads:-133,suGradPct:-0.2015,nonRet:-27,nrPct:-0.0512,retained:500,retPct:0.9488,newStudents:230,othersRet:41,offFall:771,fallTarget:869},
-  {ay:'AY16-17',offSummer:673,suGrads:-145,suGradPct:-0.2155,nonRet:-44,nrPct:-0.0833,retained:484,retPct:0.9167,newStudents:224,othersRet:50,offFall:758,fallTarget:772},
-  {ay:'AY17-18',offSummer:608,suGrads:-130,suGradPct:-0.2138,nonRet:-53,nrPct:-0.1109,retained:425,retPct:0.8891,newStudents:259,othersRet:45,offFall:729,fallTarget:760},
-  {ay:'AY18-19',offSummer:635,suGrads:-169,suGradPct:-0.2661,nonRet:-61,nrPct:-0.1309,retained:405,retPct:0.8691,newStudents:325,othersRet:65,offFall:795,fallTarget:770},
-  {ay:'AY19-20',offSummer:739,suGrads:-197,suGradPct:-0.2666,nonRet:-65,nrPct:-0.1199,retained:477,retPct:0.8801,newStudents:280,othersRet:38,offFall:795,fallTarget:755},
-  {ay:'AY20-21',offSummer:675,suGrads:-136,suGradPct:-0.2015,nonRet:-32,nrPct:-0.0594,retained:507,retPct:0.9406,newStudents:287,othersRet:46,offFall:840,fallTarget:790},
-  {ay:'AY21-22',offSummer:668,suGrads:-175,suGradPct:-0.2620,nonRet:-38,nrPct:-0.0771,retained:455,retPct:0.9229,newStudents:273,othersRet:37,offFall:765,fallTarget:823},
-  {ay:'AY22-23',offSummer:657,suGrads:-168,suGradPct:-0.2557,nonRet:-66,nrPct:-0.1350,retained:423,retPct:0.8650,newStudents:292,othersRet:40,offFall:755,fallTarget:834},
-  {ay:'AY23-24',offSummer:662,suGrads:-156,suGradPct:-0.2356,nonRet:-101,nrPct:-0.1996,retained:405,retPct:0.8004,newStudents:388,othersRet:61,offFall:854,fallTarget:852},
-  {ay:'AY24-25',offSummer:706,suGrads:-158,suGradPct:-0.2238,nonRet:-75,nrPct:-0.1369,retained:473,retPct:0.8631,newStudents:389,othersRet:69,offFall:931,fallTarget:840},
-  {ay:'AY25-26',offSummer:null,suGrads:null,suGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offFall:null,fallTarget:null},
+  {ay:'AY15-16',yearLabel:'Su 16→Fa 16',offSummer:660,suGrads:-133,suGradPct:-0.2015,nonRet:-27,nrPct:-0.0512,retained:500,retPct:0.9488,newStudents:230,othersRet:41,offFall:771,fallTarget:869},
+  {ay:'AY16-17',yearLabel:'Su 17→Fa 17',offSummer:673,suGrads:-145,suGradPct:-0.2155,nonRet:-44,nrPct:-0.0833,retained:484,retPct:0.9167,newStudents:224,othersRet:50,offFall:758,fallTarget:772},
+  {ay:'AY17-18',yearLabel:'Su 18→Fa 18',offSummer:608,suGrads:-130,suGradPct:-0.2138,nonRet:-53,nrPct:-0.1109,retained:425,retPct:0.8891,newStudents:259,othersRet:45,offFall:729,fallTarget:760},
+  {ay:'AY18-19',yearLabel:'Su 19→Fa 19',offSummer:635,suGrads:-169,suGradPct:-0.2661,nonRet:-61,nrPct:-0.1309,retained:405,retPct:0.8691,newStudents:325,othersRet:65,offFall:795,fallTarget:770},
+  {ay:'AY19-20',yearLabel:'Su 20→Fa 20',offSummer:739,suGrads:-197,suGradPct:-0.2666,nonRet:-65,nrPct:-0.1199,retained:477,retPct:0.8801,newStudents:280,othersRet:38,offFall:795,fallTarget:755},
+  {ay:'AY20-21',yearLabel:'Su 21→Fa 21',offSummer:675,suGrads:-136,suGradPct:-0.2015,nonRet:-32,nrPct:-0.0594,retained:507,retPct:0.9406,newStudents:287,othersRet:46,offFall:840,fallTarget:790},
+  {ay:'AY21-22',yearLabel:'Su 22→Fa 22',offSummer:668,suGrads:-175,suGradPct:-0.2620,nonRet:-38,nrPct:-0.0771,retained:455,retPct:0.9229,newStudents:273,othersRet:37,offFall:765,fallTarget:823},
+  {ay:'AY22-23',yearLabel:'Su 23→Fa 23',offSummer:657,suGrads:-168,suGradPct:-0.2557,nonRet:-66,nrPct:-0.1350,retained:423,retPct:0.8650,newStudents:292,othersRet:40,offFall:755,fallTarget:834},
+  {ay:'AY23-24',yearLabel:'Su 24→Fa 24',offSummer:662,suGrads:-156,suGradPct:-0.2356,nonRet:-101,nrPct:-0.1996,retained:405,retPct:0.8004,newStudents:388,othersRet:61,offFall:854,fallTarget:852},
+  {ay:'AY24-25',yearLabel:'Su 25→Fa 25',offSummer:706,suGrads:-158,suGradPct:-0.2238,nonRet:-75,nrPct:-0.1369,retained:473,retPct:0.8631,newStudents:389,othersRet:69,offFall:931,fallTarget:840},
+  {ay:'AY25-26',yearLabel:'Su 26→Fa 26',offSummer:null,suGrads:null,suGradPct:null,nonRet:null,nrPct:null,retained:null,retPct:null,newStudents:null,othersRet:null,offFall:null,fallTarget:null},
 ];
 
 // ── 3-term average helper (most recent 3 complete rows, same transition type) ──
@@ -402,6 +406,156 @@ const NEW_STUDENT_FORECAST = {
   summer: 134,  // SP→Summer mid-estimate
 };
 
+// ══════════════════════════════════════════════════════════════════
+// PERSISTENCE — localStorage save/restore for all manual inputs
+// Key schema: ef_{ay}_{field}   e.g.  ef_AY25-26_target-spring
+// ══════════════════════════════════════════════════════════════════
+const LS_PREFIX = 'ef_';
+
+function lsKey(ay, field) { return `${LS_PREFIX}${ay}_${field}`; }
+
+function lsSave(ay, field, value) {
+  try { localStorage.setItem(lsKey(ay, field), value == null ? '' : String(value)); } catch(e) {}
+}
+
+function lsLoad(ay, field) {
+  try { const v = localStorage.getItem(lsKey(ay, field)); return (v == null || v === '') ? null : v; } catch(e) { return null; }
+}
+
+function lsLoadNum(ay, field) {
+  const v = lsLoad(ay, field);
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
+function lsLoadBool(ay, field) {
+  const v = lsLoad(ay, field);
+  return v === 'true';
+}
+
+// Save all current input values for a given AY to localStorage
+function saveAllInputs(ay) {
+  // Budget targets (global, keyed by AY)
+  const tf = document.getElementById('target-fall');
+  const ts = document.getElementById('target-spring');
+  const tsu = document.getElementById('target-summer');
+  if (tf)  lsSave(ay, 'target-fall',   tf.value);
+  if (ts)  lsSave(ay, 'target-spring', ts.value);
+  if (tsu) lsSave(ay, 'target-summer', tsu.value);
+
+  // Per-block inputs
+  ['f2s','s2su','su2f'].forEach(type => {
+    const gradIn  = document.getElementById(`grad-${type}`);
+    const gradChk = document.getElementById(`est-grad-${type}`);
+    if (gradIn)  lsSave(ay, `grad-${type}`,     gradIn.value);
+    if (gradChk) lsSave(ay, `est-grad-${type}`, gradChk.checked);
+  });
+}
+
+// Restore all saved inputs for a given AY from localStorage
+function restoreInputs(ay) {
+  // Budget targets
+  const targFields = ['target-fall','target-spring','target-summer'];
+  targFields.forEach(f => {
+    const el = document.getElementById(f);
+    if (!el) return;
+    const saved = lsLoad(ay, f);
+    if (saved != null) el.value = saved;
+  });
+
+  // Per-block inputs — restored after render() via restoreBlockInputs()
+}
+
+// Called after render() re-creates block DOM; restores block-level inputs
+function restoreBlockInputs(ay) {
+  ['f2s','s2su','su2f'].forEach(type => {
+    const gradIn  = document.getElementById(`grad-${type}`);
+    const gradChk = document.getElementById(`est-grad-${type}`);
+    const savedGrad = lsLoad(ay, `grad-${type}`);
+    const savedChk  = lsLoadBool(ay, `est-grad-${type}`);
+    if (gradIn  && savedGrad != null) gradIn.value = savedGrad;
+    if (gradChk) gradChk.checked = savedChk;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CSV EXPORT
+// ══════════════════════════════════════════════════════════════════
+function exportCSV() {
+  const ay = curAY;
+  const blocks = [
+    { type:'f2s',  label:'Fall→Spring' },
+    { type:'s2su', label:'Spring→Summer' },
+    { type:'su2f', label:'Summer→Fall' },
+  ];
+
+  const rows = [
+    ['MercyU Total Enrollment Forecast — Legacy'],
+    [`Academic Year: ${ay}`, `Exported: ${new Date().toLocaleDateString()}`],
+    [],
+    ['Block','Row','Value','Pct / Rate','Notes'],
+  ];
+
+  blocks.forEach(({ type, label }) => {
+    const calc = computeBlock(type, ay);
+    if (!calc) return;
+    const termLabels = {
+      f2s:  { from:'Fall', to:'Spring' },
+      s2su: { from:'Spring', to:'Summer' },
+      su2f: { from:'Summer', to:'Fall' },
+    };
+    const tl = termLabels[type];
+    rows.push([]);
+    rows.push([label]);
+    rows.push([label, `Official ${tl.from} Count`, calc.startCount ?? '', '', calc.isForecast ? 'Forecast' : 'Actual']);
+    rows.push([label, `${tl.from} Graduates`, calc.grads ?? '', fmtPct(calc.gradPct), lsLoadBool(ay,`est-grad-${type}`) ? 'Manual estimate' : '3-term avg rate']);
+    rows.push([label, 'Max to Return', calc.maxReturn ?? '', '', '']);
+    rows.push([label, 'Non-Returning (plug)', calc.nonRet ?? '', fmtPct(calc.nrRate), '3-term avg rate × max return']);
+    rows.push([label, 'Retained', calc.retained ?? '', fmtPct(calc.retRate), '']);
+    rows.push([label, 'New Students', calc.newStudents ?? '', '', calc.isForecast ? 'From forecast dashboard' : 'Official census']);
+    rows.push([label, 'Others Returning', calc.othersRet ?? '', '', '']);
+    rows.push([label, `Official ${tl.to} Count`, calc.officialEnd ?? '', '', calc.isForecast ? '▲ Forecast' : '✓ Actual']);
+    rows.push([label, `${tl.to} Budget Target`, calc.target ?? '', '', '']);
+    rows.push([label, 'Variance to Target', calc.variance ?? '', calc.variance != null ? (calc.variance >= 0 ? 'Favorable' : 'Unfavorable') : '', '']);
+  });
+
+  // Also export full historical data
+  rows.push([], ['--- HISTORICAL DATA: Fall→Spring ---']);
+  rows.push(['Year','Official Fall','Fall Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Spring','Target']);
+  F2S.slice(0,-1).forEach(r => rows.push([
+    r.yearLabel, r.offFall, r.fallGrads, fmtPct(r.fallGradPct),
+    r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
+    r.othersRet, r.offSpring, r.spTarget
+  ]));
+
+  rows.push([], ['--- HISTORICAL DATA: Spring→Summer ---']);
+  rows.push(['Year','Official Spring','Sp Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Summer','Target']);
+  S2SU.slice(0,-1).forEach(r => rows.push([
+    r.yearLabel, r.offSpring, r.spGrads, fmtPct(r.spGradPct),
+    r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
+    r.othersRet, r.offSummer, r.suTarget
+  ]));
+
+  rows.push([], ['--- HISTORICAL DATA: Summer→Fall ---']);
+  rows.push(['Year','Official Summer','Su Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Fall','Target']);
+  SU2F.slice(0,-1).forEach(r => rows.push([
+    r.yearLabel, r.offSummer, r.suGrads, fmtPct(r.suGradPct),
+    r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
+    r.othersRet, r.offFall, r.fallTarget
+  ]));
+
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MercyU_Enrollment_Forecast_${ay}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
 // ── State ──
 let curAY = 'AY25-26';
 let curView = 'recon';
@@ -410,6 +564,163 @@ let enrChart = null, nrChart = null;
 const fmt = n => n != null ? Math.round(n).toLocaleString() : '—';
 const fmtPct = n => n != null ? (n*100).toFixed(1)+'%' : '—';
 const sign = n => n > 0 ? '+' : '';
+
+// ══════════════════════════════════════════════════════════════════
+// SUPABASE — live read/write for enrollment_reconciliation
+// localStorage used as offline fallback only
+// ══════════════════════════════════════════════════════════════════
+const SB_URL = 'https://zeidgpqiczdwnuupnozm.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplaWRncHFpY3pkd251dXBub3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjU5NzIsImV4cCI6MjA5MjAwMTk3Mn0.VKRADdN5pdLAbYOS099e1yVdAkh2RY2tUo00119lciM';
+const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation,resolution=merge-duplicates' };
+
+// In-memory override store: keyed by `${ay}|${type}` → partial row overrides from manual inputs
+// This merges with Supabase data so live inputs update the dashboard without requiring a save
+let inputOverrides = {};
+
+// Save a full reconciliation row to Supabase (upsert)
+async function sbUpsert(ay, transitionType, fields) {
+  try {
+    const payload = { academic_year: ay, transition_type: transitionType, ...fields };
+    const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation`, {
+      method: 'POST',
+      headers: SB_HDR,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.warn('Supabase upsert error:', err);
+      return false;
+    }
+    setStatus('live', `Saved to Supabase · ${new Date().toLocaleTimeString()}`);
+    return true;
+  } catch(e) {
+    console.warn('Supabase upsert failed:', e);
+    return false;
+  }
+}
+
+// Merge Supabase rows into the seed datasets (live data wins over seed)
+function mergeSBData(sbRows) {
+  sbRows.forEach(row => {
+    const datasets = { fall_to_spring: F2S, spring_to_summer: S2SU, summer_to_fall: SU2F };
+    const arr = datasets[row.transition_type];
+    if (!arr) return;
+    const idx = arr.findIndex(r => r.ay === row.academic_year);
+    if (idx >= 0) {
+      // Update existing seed row with live Supabase values
+      const r = arr[idx];
+      if (row.official_start   != null) r.offFall = row.official_start; // will map by type below
+      if (row.graduates        != null) {
+        if (row.transition_type === 'fall_to_spring')   r.fallGrads = row.graduates;
+        if (row.transition_type === 'spring_to_summer') r.spGrads   = row.graduates;
+        if (row.transition_type === 'summer_to_fall')   r.suGrads   = row.graduates;
+      }
+      if (row.grad_pct         != null) {
+        if (row.transition_type === 'fall_to_spring')   r.fallGradPct = row.grad_pct;
+        if (row.transition_type === 'spring_to_summer') r.spGradPct   = row.grad_pct;
+        if (row.transition_type === 'summer_to_fall')   r.suGradPct   = row.grad_pct;
+      }
+      if (row.non_returning    != null) r.nonRet      = row.non_returning;
+      if (row.nr_pct           != null) r.nrPct       = row.nr_pct;
+      if (row.retained         != null) r.retained    = row.retained;
+      if (row.ret_pct          != null) r.retPct      = row.ret_pct;
+      if (row.new_students     != null) r.newStudents = row.new_students;
+      if (row.others_returning != null) r.othersRet   = row.others_returning;
+      if (row.official_end     != null) {
+        if (row.transition_type === 'fall_to_spring')   r.offSpring = row.official_end;
+        if (row.transition_type === 'spring_to_summer') r.offSummer = row.official_end;
+        if (row.transition_type === 'summer_to_fall')   r.offFall   = row.official_end;
+      }
+      if (row.budget_target != null) {
+        if (row.transition_type === 'fall_to_spring')   r.spTarget   = row.budget_target;
+        if (row.transition_type === 'spring_to_summer') r.suTarget   = row.budget_target;
+        if (row.transition_type === 'summer_to_fall')   r.fallTarget = row.budget_target;
+      }
+      if (row.official_start != null) {
+        if (row.transition_type === 'fall_to_spring')   r.offFall   = row.official_start;
+        if (row.transition_type === 'spring_to_summer') r.offSpring = row.official_start;
+        if (row.transition_type === 'summer_to_fall')   r.offSummer = row.official_start;
+      }
+    }
+  });
+}
+
+async function loadFromSupabase() {
+  setStatus('loading', 'Loading from Supabase...');
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=*&order=academic_year,transition_type`, { headers: SB_HDR });
+    if (!res.ok) throw new Error('fetch failed');
+    const rows = await res.json();
+    if (rows.length > 0) mergeSBData(rows);
+    setStatus('live', `Supabase · ${rows.length} records · ${new Date().toLocaleTimeString()}`);
+    document.getElementById('footer-tx').textContent = `Source: Supabase enrollment_reconciliation · ${rows.length} records · Last synced ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    setStatus('warn', 'Supabase offline · using seed data · changes saved locally');
+    console.warn('Supabase load failed:', e);
+  }
+}
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('status-dot');
+  const tx  = document.getElementById('status-tx');
+  if (state === 'live')    { dot.className = 'status-dot live'; dot.style.background = '#3A6D11'; }
+  else if (state === 'loading') { dot.className = 'status-dot'; dot.style.background = '#999'; }
+  else if (state === 'warn')    { dot.className = 'status-dot'; dot.style.background = '#C8A84B'; }
+  else                          { dot.className = 'status-dot'; dot.style.background = '#791F1F'; }
+  tx.textContent = msg;
+}
+
+// ── Save current AY's three blocks to Supabase ──
+async function saveCurrentAYToSupabase() {
+  const btn = document.querySelector('button[onclick="saveCurrentAYToSupabase()"]');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  const typeMap = [
+    { type: 'f2s',  sbType: 'fall_to_spring',    fromField: 'offFall',   endField: 'offSpring', gradField: 'fallGrads', targetField: 'spTarget'   },
+    { type: 's2su', sbType: 'spring_to_summer',   fromField: 'offSpring', endField: 'offSummer', gradField: 'spGrads',   targetField: 'suTarget'   },
+    { type: 'su2f', sbType: 'summer_to_fall',      fromField: 'offSummer', endField: 'offFall',   gradField: 'suGrads',   targetField: 'fallTarget' },
+  ];
+
+  const targetKey = { f2s: 'spring', s2su: 'summer', su2f: 'fall' };
+  let allOk = true;
+
+  for (const { type, sbType, fromField, endField, gradField, targetField } of typeMap) {
+    const calc = computeBlock(type, curAY);
+    if (!calc) continue;
+
+    const useEstGrad = document.getElementById(`est-grad-${type}`)?.checked;
+    const gradSrc = useEstGrad ? 'estimate' : (calc.isForecast ? 'auto' : 'official');
+
+    const payload = {
+      year_label:       F2S.find(r=>r.ay===curAY)?.yearLabel || curAY,
+      official_start:   calc.startCount,
+      graduates:        calc.grads,
+      grad_pct:         calc.gradPct != null ? parseFloat(calc.gradPct.toFixed(4)) : null,
+      grad_source:      gradSrc,
+      max_to_return:    calc.maxReturn,
+      non_returning:    calc.nonRet,
+      nr_pct:           calc.nrRate  != null ? parseFloat(calc.nrRate.toFixed(4))  : null,
+      retained:         calc.retained,
+      ret_pct:          calc.retRate != null ? parseFloat(calc.retRate.toFixed(4)) : null,
+      new_students:     calc.newStudents,
+      others_returning: calc.othersRet,
+      official_end:     calc.officialEnd,
+      budget_target:    inp(`target-${targetKey[type]}`) ?? calc.target,
+      variance:         calc.variance,
+      is_forecast:      calc.isForecast,
+    };
+
+    const ok = await sbUpsert(curAY, sbType, payload);
+    if (!ok) allOk = false;
+  }
+
+  if (btn) {
+    btn.textContent = allOk ? '✓ Saved' : '✗ Error';
+    btn.disabled = false;
+    btn.style.background = allOk ? 'var(--gd)' : 'var(--dn)';
+    setTimeout(() => { btn.textContent = 'Save to Supabase'; btn.style.background = ''; }, 2500);
+  }
+}
 
 // ── Build AY buttons ──
 function buildAYButtons() {
@@ -420,7 +731,13 @@ function buildAYButtons() {
     const btn = document.createElement('button');
     btn.className = 'seg-btn' + (ay === curAY ? ' active-ay' : '');
     btn.textContent = ay.replace('AY','');
-    btn.onclick = () => { curAY = ay; buildAYButtons(); render(); };
+    btn.onclick = () => {
+      saveAllInputs(curAY); // save current before switching
+      curAY = ay;
+      buildAYButtons();
+      prefillTargets();
+      render(); // render() calls restoreBlockInputs internally
+    };
     container.appendChild(btn);
   });
 }
@@ -773,7 +1090,7 @@ function buildHistTables() {
 
     // Avg row
     const avgCells = cols.map(c => {
-      if (c.field === 'ay') return '<td>3-Yr Avg</td>';
+      if (c.field === 'yearLabel' || c.field === 'ay') return '<td>3-Yr Avg</td>';
       const vals = data.slice(-4,-1).map(r=>r[c.field]).filter(v=>v!=null&&v!==0);
       const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
       return `<td>${avg == null ? '—' : (c.isPct ? fmtPct(avg) : fmt(avg))}</td>`;
@@ -783,7 +1100,7 @@ function buildHistTables() {
   };
 
   document.getElementById('tbl-f2s').innerHTML = makeTable(F2S, [
-    {field:'ay',label:'AY'},{field:'offFall',label:'Official Fall'},
+    {field:'yearLabel',label:'Year'},{field:'offFall',label:'Official Fall'},
     {field:'fallGrads',label:'Fall Grads',neg:true},{field:'fallGradPct',label:'Grad %',isPct:true},
     {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
     {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
@@ -792,7 +1109,7 @@ function buildHistTables() {
   ]);
 
   document.getElementById('tbl-s2su').innerHTML = makeTable(S2SU, [
-    {field:'ay',label:'AY'},{field:'offSpring',label:'Official Spring'},
+    {field:'yearLabel',label:'Year'},{field:'offSpring',label:'Official Spring'},
     {field:'spGrads',label:'Sp Grads',neg:true},{field:'spGradPct',label:'Grad %',isPct:true},
     {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
     {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
@@ -801,7 +1118,7 @@ function buildHistTables() {
   ]);
 
   document.getElementById('tbl-su2f').innerHTML = makeTable(SU2F, [
-    {field:'ay',label:'AY'},{field:'offSummer',label:'Official Summer'},
+    {field:'yearLabel',label:'Year'},{field:'offSummer',label:'Official Summer'},
     {field:'suGrads',label:'Su Grads',neg:true},{field:'suGradPct',label:'Grad %',isPct:true},
     {field:'nonRet',label:'Non-Ret',neg:true},{field:'nrPct',label:'NR %',isPct:true},
     {field:'retained',label:'Retained'},{field:'newStudents',label:'New Students',pos:true},
@@ -870,19 +1187,22 @@ function buildCharts() {
 
 // ── Main render ──
 function render() {
+  // Save before re-render so state isn't lost
+  saveAllInputs(curAY);
+
   // Recon blocks
   document.getElementById('recon-blocks').innerHTML =
     renderBlock('f2s',  curAY) +
     renderBlock('s2su', curAY) +
     renderBlock('su2f', curAY);
 
+  // Restore block-level inputs (they were just re-created by renderBlock)
+  restoreBlockInputs(curAY);
+
   renderAYSummary(curAY);
 
   document.getElementById('view-pill').textContent = `${curAY} · ${curView === 'recon' ? 'Reconciliation' : 'Historical'}`;
   document.getElementById('hdr-sub').textContent = `Legacy enrollment · ${curAY} · Historical reconciliation & projection`;
-
-  // Restore checkbox/input states after re-render (need to re-attach them)
-  // Note: inputs re-render so their values reset on rerender — store state
 }
 
 function setView(v, btn) {
@@ -896,10 +1216,25 @@ function setView(v, btn) {
   document.getElementById('view-pill').textContent = `${curAY} · ${v === 'recon' ? 'Reconciliation' : 'Historical'}`;
 }
 
-// ── Pre-populate budget targets for AY25-26 ──
+// ── Pre-populate budget targets — check localStorage first, fall back to known defaults ──
 function prefillTargets() {
-  document.getElementById('target-spring').value = 787;
-  document.getElementById('target-summer').value = 709;
+  const defaults = { 'AY25-26': { fall: '', spring: 787, summer: 709 } };
+  const d = defaults[curAY] || {};
+  ['fall','spring','summer'].forEach(term => {
+    const el = document.getElementById(`target-${term}`);
+    if (!el) return;
+    const saved = lsLoad(curAY, `target-${term}`);
+    if (saved != null) { el.value = saved; }
+    else if (d[term] != null) { el.value = d[term]; }
+  });
+}
+
+// ── Wire budget target inputs to auto-save ──
+function attachTargetSavers() {
+  ['fall','spring','summer'].forEach(term => {
+    const el = document.getElementById(`target-${term}`);
+    if (el) el.addEventListener('input', () => lsSave(curAY, `target-${term}`, el.value));
+  });
 }
 
 // ── Init ──
@@ -907,7 +1242,13 @@ buildAYButtons();
 buildHistTables();
 buildCharts();
 prefillTargets();
+attachTargetSavers();
 render();
+// Load live Supabase data and re-render with merged values
+loadFromSupabase().then(() => {
+  buildHistTables(); // rebuild with any live overwrites
+  render();
+});
 </script>
 </body>
 </html>
