@@ -561,7 +561,27 @@ async function fetchAll() {
     if (weeklyRes.ok) {
       const weeklyRows = await weeklyRes.json();
       trackData = weeklyRows;
-      weeklyMatchWindow = 14; // tighter window with weekly data
+      weeklyMatchWindow = 14;
+
+      // Cache the most recent current-year snapshot per term for the input section
+      weeklyRows
+        .filter(r => r.is_current_year)
+        .forEach(r => {
+          const existing = sbLatestSnapshot[r.term];
+          if (!existing || r.snapshot_date > existing.date) {
+            sbLatestSnapshot[r.term] = {
+              date:    r.snapshot_date,
+              app:     r.applications  != null ? String(r.applications)  : '',
+              adm:     r.admissions    != null ? String(r.admissions)    : '',
+              conf:    r.confirmed     != null ? String(r.confirmed)     : '',
+              enr:     r.enrolled      != null ? String(r.enrolled)      : '',
+              inq:     '',
+              term:    r.term,
+              savedAt: r.snapshot_date + 'T00:00:00.000Z',
+              source:  'supabase',
+            };
+          }
+        });
     }
 
     const n = censusData.length;
@@ -589,7 +609,7 @@ function setTerm(term, btn) {
     const b = document.getElementById('btn-' + t);
     if (b) b.className = 'seg-btn' + (t === term ? ' a-' + t.toLowerCase() : '');
   });
-  saveInputsToLS();
+  loadSnapshotForTerm(term);
   recalc();
 }
 
@@ -688,75 +708,106 @@ function getCurrentInputs() {
   });
 }
 
-// ── Funnel input persistence — localStorage ──────────────────────────────────
-const INP_LS_KEY = 'sf_funnel_inputs'; // single JSON object: {date, inq, app, adm, conf, enr, term}
+// ── Funnel input persistence — per-term localStorage + Supabase-first loading ─
+// Key per term: sf_funnel_Fall, sf_funnel_Spring, sf_funnel_Summer
+function lsKeyForTerm(term) { return `sf_funnel_${term}`; }
+
+// Cache of latest Supabase snapshots per term, loaded in fetchAll()
+const sbLatestSnapshot = {}; // { Fall: {...}, Spring: {...}, Summer: {...} }
 
 function saveInputsToLS() {
+  const term = curTerm;
   const snapshot = {
-    date:  document.getElementById('inp-date')?.value  || new Date().toISOString().slice(0,10),
-    inq:   document.getElementById('inp-inq')?.value   || '',
-    app:   document.getElementById('inp-app')?.value   || '',
-    adm:   document.getElementById('inp-adm')?.value   || '',
-    conf:  document.getElementById('inp-conf')?.value  || '',
-    enr:   document.getElementById('inp-enr')?.value   || '',
-    term:  curTerm,
+    date:     document.getElementById('inp-date')?.value || new Date().toISOString().slice(0,10),
+    inq:      document.getElementById('inp-inq')?.value  || '',
+    app:      document.getElementById('inp-app')?.value  || '',
+    adm:      document.getElementById('inp-adm')?.value  || '',
+    conf:     document.getElementById('inp-conf')?.value || '',
+    enr:      document.getElementById('inp-enr')?.value  || '',
+    term,
     savedAt: new Date().toISOString(),
+    source: 'manual',
   };
-  try { localStorage.setItem(INP_LS_KEY, JSON.stringify(snapshot)); } catch(e) {}
+  try { localStorage.setItem(lsKeyForTerm(term), JSON.stringify(snapshot)); } catch(e) {}
   updateInputSectionHeader(snapshot);
 }
 
-function restoreInputsFromLS() {
+// Load snapshot for a given term — Supabase snapshot wins if newer than localStorage
+function loadSnapshotForTerm(term) {
+  const sbSnap = sbLatestSnapshot[term] || null;
+  let lsSnap = null;
   try {
-    const raw = localStorage.getItem(INP_LS_KEY);
-    if (!raw) return false;
-    const s = JSON.parse(raw);
-    const dateEl  = document.getElementById('inp-date');
-    const inqEl   = document.getElementById('inp-inq');
-    const appEl   = document.getElementById('inp-app');
-    const admEl   = document.getElementById('inp-adm');
-    const confEl  = document.getElementById('inp-conf');
-    const enrEl   = document.getElementById('inp-enr');
-    if (dateEl  && s.date)  dateEl.value  = s.date;
-    if (inqEl   && s.inq)   inqEl.value   = s.inq;
-    if (appEl   && s.app)   appEl.value   = s.app;
-    if (admEl   && s.adm)   admEl.value   = s.adm;
-    if (confEl  && s.conf)  confEl.value  = s.conf;
-    if (enrEl   && s.enr)   enrEl.value   = s.enr;
-    updateInputSectionHeader(s);
+    const raw = localStorage.getItem(lsKeyForTerm(term));
+    if (raw) lsSnap = JSON.parse(raw);
+  } catch(e) {}
+
+  // Pick the more recent of the two
+  let snap = null;
+  if (sbSnap && lsSnap) {
+    const sbDate = new Date(sbSnap.savedAt || sbSnap.date || 0);
+    const lsDate = new Date(lsSnap.savedAt || lsSnap.date || 0);
+    snap = sbDate >= lsDate ? sbSnap : lsSnap;
+  } else {
+    snap = sbSnap || lsSnap;
+  }
+
+  clearInputFields();
+  if (snap) {
+    const dateEl = document.getElementById('inp-date');
+    if (dateEl && snap.date) dateEl.value = snap.date;
+    const map = { inq:'inp-inq', app:'inp-app', adm:'inp-adm', conf:'inp-conf', enr:'inp-enr' };
+    Object.entries(map).forEach(([k, id]) => {
+      const el = document.getElementById(id);
+      if (el && snap[k]) el.value = snap[k];
+    });
+    updateInputSectionHeader(snap);
     return true;
-  } catch(e) { return false; }
+  } else {
+    // No snapshot for this term — show clean slate with today's date
+    const dateEl = document.getElementById('inp-date');
+    if (dateEl) dateEl.value = new Date().toISOString().slice(0,10);
+    updateInputSectionHeader(null);
+    return false;
+  }
+}
+
+function clearInputFields() {
+  ['inp-inq','inp-app','inp-adm','inp-conf','inp-enr'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 
 function updateInputSectionHeader(s) {
-  const titleEl   = document.getElementById('input-section-title');
-  const dateEl    = document.getElementById('input-section-date');
-  const noteEl    = document.getElementById('last-saved-note');
+  const titleEl = document.getElementById('input-section-title');
+  const dateEl  = document.getElementById('input-section-date');
+  const noteEl  = document.getElementById('last-saved-note');
   const hasValues = s && (s.app || s.adm || s.conf || s.enr || s.inq);
 
   if (titleEl) {
     if (s && s.date && hasValues) {
-      const d = new Date(s.date + 'T12:00:00'); // avoid timezone shift
+      const d = new Date(s.date + 'T12:00:00');
       const label = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      titleEl.textContent = `Funnel Counts — ${label}`;
+      titleEl.textContent = `${curTerm} Funnel Counts — ${label}`;
     } else {
-      titleEl.textContent = 'Funnel Counts';
+      titleEl.textContent = `${curTerm} Funnel Counts`;
     }
   }
   if (dateEl) {
     if (s && s.savedAt && hasValues) {
       const saved = new Date(s.savedAt);
-      dateEl.textContent = `Last updated ${saved.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${saved.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+      const src   = s.source === 'supabase' ? '· from Supabase' : '';
+      dateEl.textContent = `Last updated ${saved.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ${src}`;
     } else {
-      dateEl.textContent = '';
+      dateEl.textContent = `No snapshot saved for ${curTerm} yet`;
     }
   }
   if (noteEl) {
     if (s && s.date && hasValues) {
-      noteEl.textContent = 'Persisted · update counts and log a new snapshot when data changes';
+      noteEl.textContent = 'Persisted per term · log a new snapshot to update';
       noteEl.style.color = 'var(--g)';
     } else {
-      noteEl.textContent = 'Enter counts above — they will persist until you update them';
+      noteEl.textContent = 'Enter counts above to generate a forecast';
       noteEl.style.color = 'var(--txl)';
     }
   }
@@ -831,16 +882,16 @@ function recalc() {
       ? admEnrRates.reduce((a, b) => a + b, 0) / admEnrRates.length : null;
     const maxAdmEnr  = admEnrRates.length ? Math.max(...admEnrRates) : null;
 
-    // Low: forecasted_confirmed × min historical conf→enr rate
+    // Low: forecasted_confirmed × min historical conf→enr rate  (worst recent year)
     const low  = (fcConf != null && minConfEnr != null) ? Math.round(fcConf * minConfEnr) : null;
-    // Mid: forecasted_confirmed × avg historical conf→enr rate  (primary point estimate)
+    // Mid: forecasted_confirmed × avg historical conf→enr rate  (expected)
     const mid  = (fcConf != null && avgConfEnr != null) ? Math.round(fcConf * avgConfEnr) : null;
-    // High: forecasted_admitted × avg historical adm→enr rate   (optimistic ceiling)
-    const high = (fcAdm  != null && avgAdmEnr  != null) ? Math.round(fcAdm  * avgAdmEnr)  : null;
+    // High: forecasted_confirmed × max historical conf→enr rate (best recent year)
+    const high = (fcConf != null && maxConfEnr != null) ? Math.round(fcConf * maxConfEnr) : null;
 
     return {
       low, mid, high,
-      avgConfEnr, avgAdmEnr,
+      avgConfEnr, minConfEnr, maxConfEnr, avgAdmEnr,
       confEnrRateStr: avgConfEnr != null ? (avgConfEnr * 100).toFixed(1) + '%' : '—',
       admEnrRateStr:  avgAdmEnr  != null ? (avgAdmEnr  * 100).toFixed(1) + '%' : '—',
       nConf: confEnrRates.length,
@@ -906,7 +957,7 @@ function recalc() {
       kpid4el.textContent = ha != null ? `Hist avg: ${fmt(ha)}` : '';
       kpid4el.className = 'metric-delta nt';
     }
-    kpi4basis.textContent = `Conf→Enr ${enrRange.confEnrRateStr} avg · Adm→Enr ${enrRange.admEnrRateStr} avg`;
+    kpi4basis.textContent = `Conf→Enr ${enrRange.confEnrRateStr} avg · range: ${(enrRange.minConfEnr*100).toFixed(1)}% – ${(enrRange.maxConfEnr*100).toFixed(1)}%`;
   } else {
     kpi4el.textContent = '—';
     kpi4el.style.fontSize = '';
@@ -1212,11 +1263,26 @@ async function saveSnapshot() {
       throw new Error(err.substring(0, 120));
     }
     trackData.push(payload);
-    // Update the "as of date" input and persist to localStorage with the saved snapshot date
+    // Update localStorage and sbLatestSnapshot with the saved snapshot date
     const savedDate = document.getElementById('form-date').value;
+    const savedTerm = document.getElementById('form-term').value;
+    const newSnap = {
+      date:    savedDate,
+      app:     payload.applications  != null ? String(payload.applications)  : '',
+      adm:     payload.admissions    != null ? String(payload.admissions)    : '',
+      conf:    payload.confirmed     != null ? String(payload.confirmed)     : '',
+      enr:     payload.enrolled      != null ? String(payload.enrolled)      : '',
+      inq:     '',
+      term:    savedTerm,
+      savedAt: new Date().toISOString(),
+      source:  'supabase',
+    };
+    sbLatestSnapshot[savedTerm] = newSnap;
+    try { localStorage.setItem(lsKeyForTerm(savedTerm), JSON.stringify(newSnap)); } catch(e) {}
+    // Update inp-date to match saved snapshot date
     const dateInpEl = document.getElementById('inp-date');
     if (dateInpEl && savedDate) dateInpEl.value = savedDate;
-    saveInputsToLS();
+    if (savedTerm === curTerm) updateInputSectionHeader(newSnap);
     msg.className = 'save-msg success';
     msg.textContent = '✓ Snapshot saved!';
     setTimeout(closeModal, 1500);
@@ -1228,17 +1294,14 @@ async function saveSnapshot() {
   btn.disabled = false;
 }
 
-// Init
-// Restore persisted inputs first so forecast is live immediately
-const hadSaved = restoreInputsFromLS();
-// If nothing saved yet, default the date to today
-if (!hadSaved) {
-  const dateEl = document.getElementById('inp-date');
-  if (dateEl) dateEl.value = new Date().toISOString().slice(0,10);
-}
+// Init — load snapshot for the default term (Fall), then fetch Supabase
+loadSnapshotForTerm(curTerm);
+recalc();
 fetchAll().then(() => {
-  // Re-run recalc after Supabase data loads so lift uses the live data
-  if (hadSaved) recalc();
+  // After Supabase loads, sbLatestSnapshot is populated — reload for current term
+  // Supabase snapshot wins if it's newer than what's in localStorage
+  loadSnapshotForTerm(curTerm);
+  recalc();
 });
 </script>
 </body>

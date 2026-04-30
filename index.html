@@ -562,22 +562,21 @@
   ];
 
   function calcEnrolledRange(censusRows, windowYears) {
-    // Get 3-year window rows (most recent N years)
     const sorted = [...censusRows].sort((a,b) => a.academic_year > b.academic_year ? 1 : -1);
     const window = windowYears >= 99 ? sorted : sorted.slice(-windowYears);
     const confRates = window.map(r => r.confirmed && r.enrolled ? r.enrolled / r.confirmed : null).filter(Boolean);
-    const admRates  = window.map(r => r.admissions && r.enrolled ? r.enrolled / r.admissions : null).filter(Boolean);
     if (!confRates.length) return null;
     const avgConf = confRates.reduce((a,b)=>a+b,0) / confRates.length;
     const minConf = Math.min(...confRates);
-    const avgAdm  = admRates.length ? admRates.reduce((a,b)=>a+b,0) / admRates.length : null;
-    // Use avg census as proxy for "forecasted confirmed/admitted" when no live input
+    const maxConf = Math.max(...confRates);
     const avgFcConf = window.map(r=>r.confirmed).filter(Boolean).reduce((a,b)=>a+b,0) / (window.filter(r=>r.confirmed).length || 1);
-    const avgFcAdm  = window.map(r=>r.admissions).filter(Boolean).reduce((a,b)=>a+b,0) / (window.filter(r=>r.admissions).length || 1);
+    // Adm→Enr kept for reference but not used for high
+    const admRates = window.map(r => r.admissions && r.enrolled ? r.enrolled / r.admissions : null).filter(Boolean);
+    const avgAdm   = admRates.length ? admRates.reduce((a,b)=>a+b,0) / admRates.length : null;
     return {
       low:  Math.round(avgFcConf * minConf),
       mid:  Math.round(avgFcConf * avgConf),
-      high: avgAdm ? Math.round(avgFcAdm * avgAdm) : null,
+      high: Math.round(avgFcConf * maxConf),
       confRate: (avgConf * 100).toFixed(1) + '%',
       admRate:  avgAdm ? (avgAdm * 100).toFixed(1) + '%' : '—',
     };
@@ -744,14 +743,10 @@
             if (confRates.length) {
               const avgConf = confRates.reduce((a,b)=>a+b,0)/confRates.length;
               const minConf = Math.min(...confRates);
+              const maxConf = Math.max(...confRates);
               low  = Math.round(fcConfirmed * minConf);
               mid  = Math.round(fcConfirmed * avgConf);
-              // high uses admitted × adm rate (fall back to census avg if no live admitted)
-              if (admRates.length) {
-                const avgAdm = admRates.reduce((a,b)=>a+b,0)/admRates.length;
-                const avgFcAdm = sorted.map(r=>r.admissions).filter(Boolean).reduce((a,b)=>a+b,0)/(sorted.filter(r=>r.admissions).length||1);
-                high = Math.round(avgFcAdm * avgAdm);
-              }
+              high = Math.round(fcConfirmed * maxConf);
             }
           }
 
