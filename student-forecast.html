@@ -416,7 +416,7 @@
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-hd">Log Forecast Snapshot</div>
-    <div class="modal-sub">Save today's funnel counts as a historical tracking point for future forecasting accuracy.</div>
+    <div class="modal-sub">Save today's funnel counts as a historical tracking point for future forecasting accuracy. Saves to <strong>funnel_weekly_tracking</strong>.</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Academic Year</label>
@@ -434,21 +434,13 @@
           <option value="Summer">Summer</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group full">
         <label class="form-label">Snapshot Date</label>
         <input class="form-input" type="date" id="form-date" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Days to Census</label>
-        <input class="form-input" type="number" id="form-days" placeholder="e.g. 45" min="0" />
-        <div class="form-note">Approx. days remaining until census</div>
+        <div class="form-note">Date of these counts — used to match against historical snapshots at the same point in the cycle.</div>
       </div>
     </div>
     <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">Inquiries</label>
-        <input class="form-input" type="number" id="form-inq" placeholder="0" min="0" />
-      </div>
       <div class="form-group">
         <label class="form-label">Applications</label>
         <input class="form-input" type="number" id="form-app" placeholder="0" min="0" />
@@ -1045,11 +1037,12 @@ function renderHistTable(rows, avgRow) {
 
   const rowsHtml = rows.map(r => makeRow(r.academic_year, r, '')).join('');
 
-  // Avg row
+  // Avg row — always 3-year, independent of the trend window toggle
+  const threeYearRows = allRows.slice(-3);
+  const threeYearAvgs = stageFields.map(f => avg(threeYearRows, f));
   const avgObj = {};
-  stageFields.forEach((f, i) => avgObj[f] = avgRow[i]);
-  const wLabel = windowYears >= 99 ? 'All-Time Avg' : `${windowYears}-Yr Avg`;
-  const avgHtml = makeRow(wLabel, avgObj, 'avg-row');
+  stageFields.forEach((f, i) => avgObj[f] = threeYearAvgs[i]);
+  const avgHtml = makeRow('3-Yr Avg', avgObj, 'avg-row');
 
   tbody.innerHTML = rowsHtml + avgHtml;
 }
@@ -1084,12 +1077,17 @@ function openModal() {
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('form-date').value = today;
   document.getElementById('form-term').value = curTerm;
-  // Pre-fill from inputs
-  const ids = ['form-inq','form-app','form-adm','form-conf','form-enr'];
-  const inputIds = ['inp-inq','inp-app','inp-adm','inp-conf','inp-enr'];
-  ids.forEach((id, i) => {
-    const v = document.getElementById(inputIds[i]).value;
-    document.getElementById(id).value = v || '';
+  // Pre-fill from current input counts
+  const fieldMap = [
+    ['form-app',  'inp-app'],
+    ['form-adm',  'inp-adm'],
+    ['form-conf', 'inp-conf'],
+    ['form-enr',  'inp-enr'],
+  ];
+  fieldMap.forEach(([formId, inputId]) => {
+    const v = document.getElementById(inputId)?.value;
+    const el = document.getElementById(formId);
+    if (el && v) el.value = v;
   });
   document.getElementById('save-msg').textContent = '';
   document.getElementById('modal').classList.add('open');
@@ -1105,28 +1103,27 @@ async function saveSnapshot() {
   msg.className = 'save-msg';
   msg.textContent = 'Saving...';
 
+  // funnel_weekly_tracking columns: academic_year, term, snapshot_date, applications, admissions, confirmed, enrolled, is_current_year
   const payload = {
-    academic_year: document.getElementById('form-ay').value,
-    term:          document.getElementById('form-term').value,
-    snapshot_date: document.getElementById('form-date').value,
-    days_to_census: parseInt(document.getElementById('form-days').value) || null,
-    inquiries:    parseInt(document.getElementById('form-inq').value)  || null,
-    applications: parseInt(document.getElementById('form-app').value)  || null,
-    admissions:   parseInt(document.getElementById('form-adm').value)  || null,
-    confirmed:    parseInt(document.getElementById('form-conf').value) || null,
-    enrolled:     parseInt(document.getElementById('form-enr').value)  || null,
+    academic_year:    document.getElementById('form-ay').value,
+    term:             document.getElementById('form-term').value,
+    snapshot_date:    document.getElementById('form-date').value,
+    applications:     parseInt(document.getElementById('form-app').value)  || null,
+    admissions:       parseInt(document.getElementById('form-adm').value)  || null,
+    confirmed:        parseInt(document.getElementById('form-conf').value) || null,
+    enrolled:         parseInt(document.getElementById('form-enr').value)  || null,
+    is_current_year:  true,
   };
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/enrollment_funnel_tracking`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/funnel_weekly_tracking`, {
       method: 'POST',
       headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.text();
-      // Table might not exist yet — show helpful message
-      throw new Error(err.includes('relation') ? 'enrollment_funnel_tracking table not found. Run the CREATE TABLE script in Supabase first.' : err.substring(0,80));
+      throw new Error(err.substring(0, 120));
     }
     trackData.push(payload);
     msg.className = 'save-msg success';
