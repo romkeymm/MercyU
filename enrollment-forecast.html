@@ -177,7 +177,7 @@
       <a href="https://romkeymm.github.io/MercyU/" class="back-btn">← Dashboard</a>
       <div>
         <div class="hdr-title">Total Enrollment Forecast</div>
-        <div class="hdr-sub" id="hdr-sub">Legacy enrollment · Historical reconciliation &amp; projection</div>
+        <div class="hdr-sub" id="hdr-sub">Historical reconciliation &amp; projection</div>
       </div>
     </div>
     <div class="hdr-r">
@@ -205,7 +205,7 @@
   <!-- Status -->
   <div class="status-bar">
     <div class="status-dot live" id="status-dot"></div>
-    <span id="status-tx">Legacy enrollment — Fall 2015 through current</span>
+    <span id="status-tx">Fall 2015 through current</span>
   </div>
 
   <!-- AY KPI strip -->
@@ -325,7 +325,7 @@
   </div>
 
   <div class="footer-bar">
-    <div class="footer-tx" id="footer-tx">Source: Legacy Enrollment Reconciliation · enrollment_funnel_ay (Supabase)</div>
+    <div class="footer-tx" id="footer-tx">Source: Supabase · enrollment_reconciliation</div>
     <div style="display:flex;gap:16px;">
       <a href="student-forecast.html" class="footer-link">New Student Forecast →</a>
       <a href="admissions-funnel.html" class="footer-link">Admissions Funnel →</a>
@@ -336,7 +336,7 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// DATA — seeded from Legacy Enrollment Reconciliation spreadsheet
+// DATA — seeded from Enrollment Reconciliation spreadsheet
 // ══════════════════════════════════════════════════════════════════
 
 // Historical seed: Fall→Spring transitions
@@ -524,7 +524,7 @@ function exportCSV() {
   ];
 
   const rows = [
-    ['MercyU Total Enrollment Forecast — Legacy'],
+    ['MercyU Total Enrollment Forecast'],
     [`Academic Year: ${ay}`, `Exported: ${new Date().toLocaleDateString()}`],
     [],
     ['Block','Row','Value','Pct / Rate','Notes'],
@@ -1351,6 +1351,143 @@ function recalcBlockValues(type) {
   }
 }
 
+// ── renderAYSummary — populates the 4 KPI cards and AY summary strip ─────────
+function renderAYSummary(ay) {
+  const f2s  = computeBlockSimple('f2s',  ay);
+  const s2su = computeBlockSimple('s2su', ay);
+  const su2f = computeBlockSimple('su2f', ay);
+
+  const fallVal   = su2f?.officialEnd;
+  const spVal     = f2s?.officialEnd;
+  const suVal     = s2su?.officialEnd;
+
+  const nrRates = [f2s?.nrRate, s2su?.nrRate, su2f?.nrRate].filter(v => v != null);
+  const ayNR    = nrRates.length ? nrRates.reduce((a,b)=>a+b,0)/nrRates.length : null;
+
+  // KPI cards
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+  set('kpi-fall',   fallVal != null ? fmt(fallVal) : '—');
+  set('kpi-spring', spVal   != null ? fmt(spVal)   : '—');
+  set('kpi-summer', suVal   != null ? fmt(suVal)   : '—');
+  set('kpi-nr',     ayNR    != null ? fmtPct(ayNR) : '—');
+
+  // Delta notes vs prior AY
+  const ayList = [...new Set(F2S.map(r=>r.ay))].sort();
+  const priorIdx = ayList.indexOf(ay) - 1;
+  const priorAY  = priorIdx >= 0 ? ayList[priorIdx] : null;
+
+  function setDelta(id, val, priorFn, invertFav) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val != null && priorAY) {
+      const priorVal = priorFn();
+      if (priorVal != null) {
+        const diff = Math.round(val - priorVal);
+        el.textContent = (diff >= 0 ? '+' : '') + fmt(Math.abs(diff)) + ' vs ' + priorAY;
+        el.className = 'metric-delta ' + ((diff >= 0) !== invertFav ? 'up' : 'dn');
+      } else { el.textContent = ''; el.className = 'metric-delta nt'; }
+    } else { el.textContent = ''; el.className = 'metric-delta nt'; }
+  }
+
+  if (priorAY) {
+    const pF2s  = computeBlockSimple('f2s',  priorAY);
+    const pS2su = computeBlockSimple('s2su', priorAY);
+    const pSu2f = computeBlockSimple('su2f', priorAY);
+    setDelta('kpid-fall',   fallVal, () => pSu2f?.officialEnd, false);
+    setDelta('kpid-spring', spVal,   () => pF2s?.officialEnd,  false);
+    setDelta('kpid-summer', suVal,   () => pS2su?.officialEnd, false);
+    const priorNRs = [pF2s?.nrRate, pS2su?.nrRate, pSu2f?.nrRate].filter(v=>v!=null);
+    const priorNR = priorNRs.length ? priorNRs.reduce((a,b)=>a+b,0)/priorNRs.length : null;
+    if (ayNR != null && priorNR != null) {
+      const diff = ayNR - priorNR;
+      const nrEl = document.getElementById('kpid-nr');
+      if (nrEl) {
+        nrEl.textContent = (diff >= 0 ? '+' : '') + (diff*100).toFixed(1) + 'pp vs ' + priorAY;
+        nrEl.className = 'metric-delta ' + (diff <= 0 ? 'up' : 'dn');
+      }
+    }
+  }
+
+  // AY Summary cards
+  const sumEl = document.getElementById('ay-summary');
+  if (sumEl) {
+    const cards = [
+      { lbl:'Fall',   val: fallVal, color:'var(--fall)',   fc: su2f?.isForecast },
+      { lbl:'Spring', val: spVal,   color:'var(--spring)', fc: f2s?.isForecast  },
+      { lbl:'Summer', val: suVal,   color:'var(--summer)', fc: s2su?.isForecast },
+      { lbl:'Avg Non-Return Rate', val: ayNR != null ? fmtPct(ayNR) : '—', color:'var(--pd)', raw:true },
+    ];
+    sumEl.innerHTML = cards.map(c => `
+      <div style="background:var(--off);border:.5px solid var(--bdr);border-radius:8px;padding:10px 12px;border-top:3px solid ${c.color};">
+        <div style="font-size:10px;color:var(--txl);margin-bottom:4px;">${c.lbl}</div>
+        <div style="font-size:20px;font-weight:600;color:${c.color};">${c.raw ? c.val : fmt(c.val)}${!c.raw && c.fc ? '<span style="font-size:10px;color:var(--txl);font-weight:400;margin-left:4px;">forecast</span>' : ''}</div>
+      </div>`).join('');
+  }
+}
+
+// ── buildCharts — enrollment and NR rate charts ───────────────────────────────
+function buildCharts() {
+  if (typeof Chart === 'undefined') return;
+  const ayList = [...new Set(F2S.map(r=>r.ay))].sort().slice(-8);
+  const labels = ayList.map(ay => ay.replace('AY',''));
+
+  const fallData   = ayList.map(ay => { const r = SU2F.find(d=>d.ay===ay); return r?.offFall   ?? null; });
+  const spData     = ayList.map(ay => { const r = F2S.find(d=>d.ay===ay);  return r?.offSpring  ?? null; });
+  const suData     = ayList.map(ay => { const r = S2SU.find(d=>d.ay===ay); return r?.offSummer  ?? null; });
+
+  const ctx1 = document.getElementById('enr-chart')?.getContext('2d');
+  if (ctx1) {
+    if (enrChart) { enrChart.destroy(); enrChart = null; }
+    enrChart = new Chart(ctx1, {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label:'Fall',   data: fallData, backgroundColor:'#185FA5', borderRadius:3 },
+        { label:'Spring', data: spData,   backgroundColor:'#5A8C3C', borderRadius:3 },
+        { label:'Summer', data: suData,   backgroundColor:'#BA7517', borderRadius:3 },
+      ]},
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales: {
+          x: { stacked:true, ticks:{ font:{size:9}, autoSkip:false }, grid:{ display:false } },
+          y: { stacked:true, ticks:{ font:{size:10} }, grid:{ color:'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // NR rate chart
+  const nrData = ayList.map(ay => {
+    const f  = F2S.find(r=>r.ay===ay)?.nrPct;
+    const s  = S2SU.find(r=>r.ay===ay)?.nrPct;
+    const su = SU2F.find(r=>r.ay===ay)?.nrPct;
+    const vals = [f,s,su].filter(v=>v!=null);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length)*100 : null;
+  });
+  const validNR = nrData.filter(v=>v!=null);
+  const avgNR = validNR.length ? validNR.slice(0,-1).reduce((a,b)=>a+b,0) / validNR.slice(0,-1).length : 0;
+
+  const ctx2 = document.getElementById('nr-chart')?.getContext('2d');
+  if (ctx2) {
+    if (nrChart) { nrChart.destroy(); nrChart = null; }
+    nrChart = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label:'Avg NR rate', data: labels.map(() => parseFloat(avgNR.toFixed(2))), type:'line',
+          borderColor:'rgba(121,31,31,.4)', backgroundColor:'transparent',
+          borderDash:[4,3], borderWidth:1.5, pointRadius:0, tension:0 },
+        { label:'AY NR rate', data: nrData, backgroundColor:'#2E1A42', borderRadius:3 },
+      ]},
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales: {
+          x: { ticks:{ font:{size:9}, autoSkip:false }, grid:{ display:false } },
+          y: { ticks:{ font:{size:10}, callback: v => v+'%' }, grid:{ color:'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+  }
+}
+
 // ── Update KPIs and AY summary (called after any block recalc) ──
 function updateKPIsAndSummary() {
   renderAYSummary(curAY);
@@ -1372,7 +1509,7 @@ function render() {
   updateKPIsAndSummary();
 
   document.getElementById('view-pill').textContent = `${curAY} · ${curView === 'recon' ? 'Reconciliation' : 'Historical'}`;
-  document.getElementById('hdr-sub').textContent = `Legacy enrollment · ${curAY} · Historical reconciliation & projection`;
+  document.getElementById('hdr-sub').textContent = `${curAY} · Historical reconciliation & projection`;
 }
 
 function setView(v, btn) {
