@@ -1351,6 +1351,46 @@ function recalcBlockValues(type) {
   }
 }
 
+// ── computeBlockSimple — lightweight version for KPI deltas (no DOM reads) ───
+function computeBlockSimple(type, ay) {
+  const datasets = { f2s: F2S, s2su: S2SU, su2f: SU2F };
+  const arr  = datasets[type];
+  const row  = arr?.find(r => r.ay === ay);
+  if (!row) return null;
+  const avgs = AVG[type];
+
+  const startCount = type==='f2s'  ? row.offFall
+                   : type==='s2su' ? row.offSpring
+                   :                 row.offSummer;
+  if (startCount == null) return null;
+
+  const gradField  = type==='f2s'  ? 'fallGrads'
+                   : type==='s2su' ? 'spGrads'
+                   :                 'suGrads';
+  const grads      = row[gradField] ?? (avgs.gradPct != null ? Math.round(startCount * avgs.gradPct) : null);
+  const maxReturn  = startCount + (grads ?? 0);
+  const nonRet     = row.nonRet ?? (avgs.nrPct != null ? Math.round(maxReturn * avgs.nrPct) : null);
+  const retained   = maxReturn + (nonRet ?? 0);
+  const newStudents= row.newStudents ?? Math.round(avgs.newStudents ?? 0);
+  const othersRet  = row.othersRet   ?? Math.round(avgs.othersRet  ?? 0);
+  const officialEnd= retained + newStudents + othersRet;
+
+  const isForecast = type==='f2s'  ? row.offSpring == null
+                   : type==='s2su' ? row.offSummer == null
+                   :                 row.offFall   == null;
+
+  const endVal = isForecast ? officialEnd
+               : type==='f2s'  ? (row.offSpring ?? officialEnd)
+               : type==='s2su' ? (row.offSummer ?? officialEnd)
+               :                  (row.offFall   ?? officialEnd);
+
+  return {
+    officialEnd: endVal,
+    nrRate: maxReturn > 0 ? (nonRet ?? 0) / maxReturn : null,
+    isForecast,
+  };
+}
+
 // ── renderAYSummary — populates the 4 KPI cards and AY summary strip ─────────
 function renderAYSummary(ay) {
   const f2s  = computeBlockSimple('f2s',  ay);
