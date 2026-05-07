@@ -318,18 +318,12 @@
         <span style="width:8px;height:8px;border-radius:50%;background:var(--summer);display:inline-block;"></span>Summer
         <input type="number" id="target-summer" class="row-input" style="width:80px;" placeholder="e.g. 709" oninput="render()" />
       </div>
-      <div style="font-size:9px;color:var(--txl);font-style:italic;margin-left:4px;">Budget targets are fixed for the academic year. Enter once.</div>
+      <div style="margin-left:auto;font-size:9px;color:var(--txl);font-style:italic;">Budget targets are fixed for the academic year · Tab out of a field to auto-save to Supabase · Yellow cells in blocks below = manual estimate override · Auto-calc shown when no input entered</div>
     </div>
 
     <!-- Three reconciliation blocks -->
     <div class="recon-section">
-      <div class="section-hd">
-        Term-by-term reconciliation
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span class="section-hd-note">Yellow cells = manual input · Auto-calc shown when no input entered</span>
-          <button onclick="saveCurrentAYToSupabase()" class="btn btn-green" style="font-size:10px;padding:4px 12px;">Save to Supabase</button>
-        </div>
-      </div>
+      <div class="section-hd">Term-by-term reconciliation</div>
       <div class="recon-blocks" id="recon-blocks"></div>
     </div>
 
@@ -1753,28 +1747,79 @@ function setView(v, btn) {
 
 // ── Pre-populate budget targets — check localStorage first, fall back to known defaults ──
 function prefillTargets() {
-  const defaults = { 'AY25-26': { fall: '', spring: 787, summer: 709 } };
-  const d = defaults[curAY] || {};
+  // Supabase-merged seed data is the source of truth; localStorage overrides for unsaved edits
+  const f2sRow  = F2S.find(r => r.ay === curAY);
+  const s2suRow = S2SU.find(r => r.ay === curAY);
+  const su2fRow = SU2F.find(r => r.ay === curAY);
+
+  const seedTargets = {
+    spring: f2sRow?.spTarget   ?? null,
+    summer: s2suRow?.suTarget  ?? null,
+    fall:   su2fRow?.fallTarget ?? null,
+  };
+
   ['fall','spring','summer'].forEach(term => {
     const el = document.getElementById(`target-${term}`);
     if (!el) return;
     const saved = lsLoad(curAY, `target-${term}`);
-    if (saved != null) { el.value = saved; }
-    else if (d[term] != null) { el.value = d[term]; }
+    if (saved != null)              { el.value = saved; }
+    else if (seedTargets[term] != null) { el.value = seedTargets[term]; }
   });
 }
 
-// ── Wire budget target inputs to auto-save and recalc ──
+// ── Wire budget target inputs to auto-save localStorage + Supabase on blur ──
 function attachTargetSavers() {
+  const termToTransition = { fall: 'summer_to_fall', spring: 'fall_to_spring', summer: 'spring_to_summer' };
+
   ['fall','spring','summer'].forEach(term => {
     const el = document.getElementById(`target-${term}`);
-    if (el) el.addEventListener('input', () => {
+    if (!el) return;
+
+    // Live recalc on every keystroke (localStorage only)
+    el.addEventListener('input', () => {
       lsSave(curAY, `target-${term}`, el.value);
-      // Recalc whichever block uses this target
       if (term === 'spring') recalcBlockValues('f2s');
       if (term === 'summer') recalcBlockValues('s2su');
       if (term === 'fall')   recalcBlockValues('su2f');
       updateKPIsAndSummary();
+    });
+
+    // Persist to Supabase on blur (when user tabs/clicks away)
+    el.addEventListener('blur', async () => {
+      const val = parseInt(el.value);
+      if (isNaN(val)) return;
+
+      // Flash gold while saving
+      el.style.borderColor = 'var(--gold)';
+      el.style.background  = '#FFFDF5';
+
+      try {
+        const payload = {
+          academic_year:   curAY,
+          transition_type: termToTransition[term],
+          budget_target:   val,
+        };
+        const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation`, {
+          method:  'POST',
+          headers: SB_HDR,
+          body:    JSON.stringify(payload),
+        });
+        if (res.ok) {
+          // Green flash = saved
+          el.style.borderColor = 'var(--g)';
+          el.style.background  = '#E8F5E0';
+          setStatus('live', `Budget target saved · ${term} ${curAY} = ${val.toLocaleString()} · ${new Date().toLocaleTimeString()}`);
+          setTimeout(() => { el.style.borderColor = 'var(--gold)'; el.style.background = '#FFFDF5'; }, 1400);
+        } else {
+          throw new Error(await res.text());
+        }
+      } catch(e) {
+        // Red flash = error
+        el.style.borderColor = 'var(--dn)';
+        el.style.background  = '#FDECEA';
+        setTimeout(() => { el.style.borderColor = 'var(--gold)'; el.style.background = '#FFFDF5'; }, 1800);
+        console.warn('Budget target save failed:', e);
+      }
     });
   });
 }
