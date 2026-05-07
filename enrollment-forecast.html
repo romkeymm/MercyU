@@ -318,12 +318,15 @@
         <span style="width:8px;height:8px;border-radius:50%;background:var(--summer);display:inline-block;"></span>Summer
         <input type="number" id="target-summer" class="row-input" style="width:80px;" placeholder="e.g. 709" oninput="render()" />
       </div>
-      <div style="margin-left:auto;font-size:9px;color:var(--txl);font-style:italic;">Budget targets are fixed for the academic year · Tab out of a field to auto-save to Supabase · Yellow cells in blocks below = manual estimate override · Auto-calc shown when no input entered</div>
+      <div style="font-size:9px;color:var(--txl);font-style:italic;">Budget targets are fixed for the academic year · Tab out of a field to auto-save to Supabase</div>
     </div>
 
     <!-- Three reconciliation blocks -->
     <div class="recon-section">
-      <div class="section-hd">Term-by-term reconciliation</div>
+      <div class="section-hd">
+        Term-by-term reconciliation
+        <span class="section-hd-note">Yellow cells = manual estimate override · Auto-calc shown when no input entered</span>
+      </div>
       <div class="recon-blocks" id="recon-blocks"></div>
     </div>
 
