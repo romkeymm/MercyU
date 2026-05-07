@@ -701,10 +701,20 @@ function exportCSV() {
   });
 
   // Also export full historical data
+  const csvTermLabel = (ay, type) => {
+    const m = ay.match(/AY(\d{2})-(\d{2})/);
+    if (!m) return ay;
+    const y1 = m[1], y2 = m[2];
+    if (type === 'f2s')  return `FA${y1} → SP${y2}`;
+    if (type === 's2su') return `SP${y2} → SU${y2}`;
+    if (type === 'su2f') return `SU${y2} → FA${y2}`;
+    return ay;
+  };
+
   rows.push([], ['--- HISTORICAL DATA: Fall→Spring ---']);
   rows.push(['Year','Official Fall','Fall Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Spring','Target']);
   F2S.slice(0,-1).forEach(r => rows.push([
-    r.yearLabel, r.offFall, r.fallGrads, fmtPct(r.fallGradPct),
+    csvTermLabel(r.ay,'f2s'), r.offFall, r.fallGrads, fmtPct(r.fallGradPct),
     r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
     r.othersRet, r.offSpring, r.spTarget
   ]));
@@ -712,7 +722,7 @@ function exportCSV() {
   rows.push([], ['--- HISTORICAL DATA: Spring→Summer ---']);
   rows.push(['Year','Official Spring','Sp Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Summer','Target']);
   S2SU.slice(0,-1).forEach(r => rows.push([
-    r.yearLabel, r.offSpring, r.spGrads, fmtPct(r.spGradPct),
+    csvTermLabel(r.ay,'s2su'), r.offSpring, r.spGrads, fmtPct(r.spGradPct),
     r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
     r.othersRet, r.offSummer, r.suTarget
   ]));
@@ -720,7 +730,7 @@ function exportCSV() {
   rows.push([], ['--- HISTORICAL DATA: Summer→Fall ---']);
   rows.push(['Year','Official Summer','Su Grads','Grad %','Non-Ret','NR %','Retained','New Students','Others Ret','Official Fall','Target']);
   SU2F.slice(0,-1).forEach(r => rows.push([
-    r.yearLabel, r.offSummer, r.suGrads, fmtPct(r.suGradPct),
+    csvTermLabel(r.ay,'su2f'), r.offSummer, r.suGrads, fmtPct(r.suGradPct),
     r.nonRet, fmtPct(r.nrPct), r.retained, r.newStudents,
     r.othersRet, r.offFall, r.fallTarget
   ]));
@@ -906,6 +916,17 @@ async function saveCurrentAYToSupabase() {
 // ── Historical tables (editable official counts) ─────────────────────────────
 function buildHistTables() {
   const makeTable = (data, cols, offEndField, transitionType) => {
+    // Generate standardized term label from AY string
+    const termLabel = (ay) => {
+      const m = ay.match(/AY(\d{2})-(\d{2})/);
+      if (!m) return ay;
+      const y1 = m[1], y2 = m[2];
+      if (transitionType === 'fall_to_spring')   return `FA${y1} → SP${y2}`;
+      if (transitionType === 'spring_to_summer') return `SP${y2} → SU${y2}`;
+      if (transitionType === 'summer_to_fall')   return `SU${y2} → FA${y2}`;
+      return ay;
+    };
+
     const hdrs = cols.map(c =>
       `<th class="hist-table-th" style="text-align:${c.first?'left':'right'};">${c.label}</th>`
     ).join('');
@@ -913,7 +934,7 @@ function buildHistTables() {
     const rows = data.slice(0, -1).map(r => {
       const cells = cols.map(c => {
         if (c.field === 'yearLabel') {
-          return `<td style="text-align:left;font-weight:600;color:var(--txm);">${r.yearLabel ?? r.ay}</td>`;
+          return `<td style="text-align:left;font-weight:600;color:var(--txm);">${termLabel(r.ay)}</td>`;
         }
         if (c.editableEnd) {
           // Editable official count cell — yellow input, saves to Supabase on blur
