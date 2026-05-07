@@ -286,7 +286,7 @@
       <div class="metric-delta nt" id="kpid-summer"></div>
     </div>
     <div class="metric">
-      <div class="metric-lbl">AY Attrition</div>
+      <div class="metric-lbl" id="kpilbl-nr">AY Attrition</div>
       <div class="metric-val" id="kpi-nr" style="font-size:18px;">—</div>
       <div class="metric-delta nt" id="kpid-nr"></div>
       <div style="font-size:10px;color:var(--txl);margin-top:2px;" id="kpi-nr-rate"></div>
@@ -1529,6 +1529,7 @@ function computeBlockSimple(type, ay) {
 
   return {
     officialEnd: endVal,
+    nonRet,
     nrRate: maxReturn > 0 ? (nonRet ?? 0) / maxReturn : null,
     isForecast,
   };
@@ -1540,9 +1541,13 @@ function renderAYSummary(ay) {
   const s2su = computeBlockSimple('s2su', ay);
   const su2f = computeBlockSimple('su2f', ay);
 
-  const fallVal   = su2f?.officialEnd;
-  const spVal     = f2s?.officialEnd;
-  const suVal     = s2su?.officialEnd;
+  // Fall = official start of the F2S block (offFall on the F2S row) — this is the
+  // census enrollment that begins the AY, e.g. AY25-26 Fall = 931
+  const f2sRow  = F2S.find(r => r.ay === ay);
+  const su2fRow = SU2F.find(r => r.ay === ay);
+  const fallVal = f2sRow?.offFall ?? null;
+  const spVal   = f2s?.officialEnd ?? null;
+  const suVal   = s2su?.officialEnd ?? null;
 
   // Derive term years from AY string (e.g. AY25-26 → y1=2025, y2=2026)
   const ayMatch = ay.match(/AY(\d{2})-(\d{2})/);
@@ -1554,6 +1559,7 @@ function renderAYSummary(ay) {
   setLbl('kpilbl-fall',   `Fall ${y1} Enrollment`);
   setLbl('kpilbl-spring', `Spring ${y2} Enrollment`);
   setLbl('kpilbl-summer', `Summer ${y2} Enrollment`);
+  setLbl('kpilbl-nr',     `AY ${y1}–${String(y2).slice(2)} Attrition`);
 
   const nrRates = [f2s?.nrRate, s2su?.nrRate, su2f?.nrRate].filter(v => v != null);
   const ayNR    = nrRates.length ? nrRates.reduce((a,b)=>a+b,0)/nrRates.length : null;
@@ -1561,7 +1567,10 @@ function renderAYSummary(ay) {
   // Total AY attrition = sum of nonRet across all three transitions (stored as negatives)
   const f2sNR  = f2s?.nonRet  != null ? Math.abs(f2s.nonRet)  : null;
   const s2suNR = s2su?.nonRet != null ? Math.abs(s2su.nonRet) : null;
-  const su2fNR = su2f?.nonRet != null ? Math.abs(su2f.nonRet) : null;
+  // For su2f, nonRet comes from the row directly since computeBlockSimple may return null
+  // if offSummer is missing — fall back to row data
+  const su2fNR = su2fRow?.nonRet != null ? Math.abs(su2fRow.nonRet)
+               : su2f?.nonRet    != null ? Math.abs(su2f.nonRet) : null;
   const ayAttrition = (f2sNR != null || s2suNR != null || su2fNR != null)
     ? (f2sNR ?? 0) + (s2suNR ?? 0) + (su2fNR ?? 0) : null;
 
@@ -1593,17 +1602,23 @@ function renderAYSummary(ay) {
   }
 
   if (priorAY) {
-    const pF2s  = computeBlockSimple('f2s',  priorAY);
-    const pS2su = computeBlockSimple('s2su', priorAY);
-    const pSu2f = computeBlockSimple('su2f', priorAY);
-    setDelta('kpid-fall',   fallVal, () => pSu2f?.officialEnd, false);
-    setDelta('kpid-spring', spVal,   () => pF2s?.officialEnd,  false);
-    setDelta('kpid-summer', suVal,   () => pS2su?.officialEnd, false);
+    const pF2s    = computeBlockSimple('f2s',  priorAY);
+    const pS2su   = computeBlockSimple('s2su', priorAY);
+    const pSu2f   = computeBlockSimple('su2f', priorAY);
+    const pF2sRow = F2S.find(r => r.ay === priorAY);
+    const pSu2fRow= SU2F.find(r => r.ay === priorAY);
+
+    setDelta('kpid-fall',   fallVal, () => pF2sRow?.offFall ?? null, false);
+    setDelta('kpid-spring', spVal,   () => pF2s?.officialEnd,        false);
+    setDelta('kpid-summer', suVal,   () => pS2su?.officialEnd,       false);
 
     // Attrition delta — higher attrition is unfavorable
-    const priorAttrition = ((pF2s?.nonRet != null ? Math.abs(pF2s.nonRet) : 0) +
-                            (pS2su?.nonRet != null ? Math.abs(pS2su.nonRet) : 0) +
-                            (pSu2f?.nonRet != null ? Math.abs(pSu2f.nonRet) : 0)) || null;
+    const priorF2sNR  = pF2s?.nonRet    != null ? Math.abs(pF2s.nonRet)    : null;
+    const priorS2suNR = pS2su?.nonRet   != null ? Math.abs(pS2su.nonRet)   : null;
+    const priorSu2fNR = pSu2fRow?.nonRet != null ? Math.abs(pSu2fRow.nonRet)
+                      : pSu2f?.nonRet    != null ? Math.abs(pSu2f.nonRet) : null;
+    const priorAttrition = (priorF2sNR != null || priorS2suNR != null || priorSu2fNR != null)
+      ? (priorF2sNR ?? 0) + (priorS2suNR ?? 0) + (priorSu2fNR ?? 0) : null;
     setDelta('kpid-nr', ayAttrition, () => priorAttrition, true);
   }
 
