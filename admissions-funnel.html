@@ -21,6 +21,21 @@
     body{font-family:var(--sans);background:#EDEAE6;min-height:100vh;padding:20px 16px;}
     .page{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:0;background:var(--w);border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);box-shadow:0 2px 16px rgba(0,0,0,.08);}
 
+    /* ── Top Nav ── */
+    .topnav{padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:.5px solid var(--bdr);background:var(--w);}
+    .tn-logo{display:flex;align-items:center;gap:10px;}
+    .tn-logomark{width:22px;height:26px;flex-shrink:0;}
+    .tn-brand{font-family:var(--sans);font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
+    .tn-brand em{color:var(--p);font-style:normal;}
+    .tn-links{display:flex;gap:2px;}
+    .tn-link{font-size:11px;font-weight:600;color:var(--txm);padding:5px 10px;border-radius:5px;text-decoration:none;transition:background .1s;}
+    .tn-link:hover{background:var(--off);color:var(--tx);}
+    .tn-link.active{background:var(--pl);color:var(--p);}
+    .tn-right{display:flex;align-items:center;gap:8px;}
+    .tn-date{font-size:11px;color:var(--txl);}
+    .tn-badge{background:var(--g);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.04em;}
+    @media(max-width:768px){.tn-links{display:none;}}
+
     /* Header */
     .hdr{background:var(--pd);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
     .hdr-l{display:flex;align-items:center;gap:12px;}
@@ -145,6 +160,31 @@
 
 <div class="page">
 
+  <!-- Top Nav -->
+  <div class="topnav">
+    <div class="tn-logo">
+      <svg class="tn-logomark" viewBox="0 0 22 26" fill="none">
+        <rect width="22" height="26" rx="2" fill="#4A2C6B"/>
+        <rect x="2.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="12.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="2.5" y="10" width="17" height="6" rx="1" fill="#7AB558" opacity=".4"/>
+      </svg>
+      <div class="tn-brand">Mercy <em>College</em> of Health Sciences</div>
+    </div>
+    <div class="tn-links">
+      <a href="https://romkeymm.github.io/MercyU/" class="tn-link">Dashboard</a>
+      <a href="admissions-funnel.html" class="tn-link active">Admissions Funnel</a>
+      <a href="student-forecast.html" class="tn-link">New Student Forecast</a>
+      <a href="enrollment-forecast.html" class="tn-link">Total Enrollment Forecast</a>
+      <a href="https://analytics.google.com" class="tn-link">Analytics</a>
+      <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
+    </div>
+    <div class="tn-right">
+      <div class="tn-date" id="tn-date"></div>
+      <div class="tn-badge">Staff</div>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="hdr">
     <div class="hdr-l">
@@ -163,17 +203,32 @@
   <!-- Filter bar -->
   <div class="filter-bar">
     <div class="filter-group">
-      <div class="filter-lbl">Year</div>
-      <div id="ay-btns"></div>
+      <div class="filter-lbl">View</div>
+      <button class="seg-btn a-ay" id="mode-ay"   onclick="setMode('ay')">By Academic Year</button>
+      <button class="seg-btn"      id="mode-hist" onclick="setMode('hist')">Historical by Term</button>
     </div>
     <div class="divider"></div>
-    <div class="filter-group">
-      <div class="filter-lbl">Term</div>
-      <button class="seg-btn" id="btn-Fall"   onclick="setTerm('Fall',this)">Fall</button>
-      <button class="seg-btn" id="btn-Spring" onclick="setTerm('Spring',this)">Spring</button>
-      <button class="seg-btn" id="btn-Summer" onclick="setTerm('Summer',this)">Summer</button>
+    <div id="ay-controls" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="filter-group">
+        <div class="filter-lbl">Year</div>
+        <div id="ay-btns" style="display:flex;gap:4px;"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="filter-group">
+        <div class="filter-lbl">Term</div>
+        <button class="seg-btn" id="btn-Fall"   onclick="setTerm('Fall',this)">Fall</button>
+        <button class="seg-btn" id="btn-Spring" onclick="setTerm('Spring',this)">Spring</button>
+        <button class="seg-btn" id="btn-Summer" onclick="setTerm('Summer',this)">Summer</button>
+      </div>
     </div>
-    <div class="view-pill" id="view-pill">Loading...</div>
+    <div id="hist-controls" style="display:none;align-items:center;gap:8px;">
+      <div class="filter-group">
+        <div class="filter-lbl">Compare All</div>
+        <button class="seg-btn a-fall"   id="hbtn-Fall"   onclick="setHistTerm('Fall',this)">Fall</button>
+        <button class="seg-btn"          id="hbtn-Spring" onclick="setHistTerm('Spring',this)">Spring</button>
+        <button class="seg-btn"          id="hbtn-Summer" onclick="setHistTerm('Summer',this)">Summer</button>
+      </div>
+    </div>
   </div>
 
   <!-- Status -->
@@ -342,6 +397,8 @@ let termData = {};  // { '2024FA': {academic_year,term,term_year,...}, ... }
 let ayList = [];
 let curAY = '';
 let curTerm = null;
+let curMode = 'ay';      // 'ay' | 'hist'
+let curHistTerm = 'Fall';
 let yoyChart = null;
 let trendChart = null;
 
@@ -429,15 +486,34 @@ function setTerm(term, btn) {
   render();
 }
 
+function setMode(mode) {
+  curMode = mode;
+  document.getElementById('mode-ay').className   = 'seg-btn' + (mode === 'ay'   ? ' a-ay' : '');
+  document.getElementById('mode-hist').className = 'seg-btn' + (mode === 'hist' ? ' a-ay' : '');
+  document.getElementById('ay-controls').style.display   = mode === 'ay'   ? 'flex' : 'none';
+  document.getElementById('hist-controls').style.display = mode === 'hist' ? 'flex' : 'none';
+  if (mode === 'hist') renderHistView();
+  else render();
+}
+
+function setHistTerm(term, btn) {
+  curHistTerm = term;
+  ['Fall','Spring','Summer'].forEach(t => {
+    const b = document.getElementById('hbtn-'+t);
+    if (b) b.className = 'seg-btn' + (t === term ? ' a-' + t.toLowerCase() : '');
+  });
+  renderHistView();
+}
+
 function getTermCode(ay, term) {
-  // AY24-25: Fall=2024FA, Spring=2025SP, Summer=2024SU
+  // AY25-26: Fall=2025FA, Spring=2026SP, Summer=2026SU
   const match = ay.match(/AY(\d{2})-(\d{2})/);
   if (!match) return null;
   const y1 = 2000 + parseInt(match[1]);
   const y2 = 2000 + parseInt(match[2]);
   if (term === 'Fall')   return `${y1}FA`;
   if (term === 'Spring') return `${y2}SP`;
-  if (term === 'Summer') return `${y1}SU`;
+  if (term === 'Summer') return `${y2}SU`;
 }
 
 function getVals() {
@@ -474,7 +550,7 @@ function render() {
   const termLabel = curTerm || 'All Terms';
 
   document.getElementById('hdr-sub').textContent = `${curLabel} · ${termLabel}`;
-  document.getElementById('view-pill').textContent = `${curLabel} · ${termLabel}`;
+  
   document.getElementById('pipe-note').textContent = `${curLabel} · ${termLabel}`;
 
   // Highlight current AY button
@@ -520,6 +596,14 @@ function render() {
 
   updateYoYChart(v, pr);
   renderRawTable();
+
+  // Restore trend chart to full colors when in AY mode
+  if (trendChart) {
+    trendChart.data.datasets[0].backgroundColor = '#185FA5';
+    trendChart.data.datasets[1].backgroundColor = '#5A8C3C';
+    trendChart.data.datasets[2].backgroundColor = '#BA7517';
+    trendChart.update();
+  }
 }
 
 function renderTermCards() {
@@ -541,7 +625,7 @@ function renderTermCards() {
     const match = curAY.match(/AY(\d{2})-(\d{2})/);
     const y1 = match ? 2000 + parseInt(match[1]) : '';
     const y2 = match ? 2000 + parseInt(match[2]) : '';
-    const label = key === 'Fall' ? `Fall ${y1}` : key === 'Spring' ? `Spring ${y2}` : `Summer ${y1}`;
+    const label = key === 'Fall' ? `Fall ${y1}` : key === 'Spring' ? `Spring ${y2}` : `Summer ${y2}`;
 
     return `<div class="term-card">
       <div class="term-hd"><div class="term-dot" style="background:${color};"></div><span style="color:${color};">${label}</span></div>
@@ -638,7 +722,7 @@ function renderRawTable() {
       const match = ay.match(/AY(\d{2})-(\d{2})/);
       const y1 = match ? 2000 + parseInt(match[1]) : '';
       const y2 = match ? 2000 + parseInt(match[2]) : '';
-      const label = curTerm === 'Fall' ? `Fall ${y1}` : curTerm === 'Spring' ? `Spring ${y2}` : `Summer ${y1}`;
+      const label = curTerm === 'Fall' ? `Fall ${y1}` : curTerm === 'Spring' ? `Spring ${y2}` : `Summer ${y2}`;
       rows.push({ label, inq: d.inquiries, app: d.applications, adm: d.admissions, conf: d.confirmed, enr: d.enrolled });
     });
     if (note) note.textContent = `${curTerm} term · ${rows.length} year${rows.length !== 1 ? 's' : ''}`;
@@ -684,16 +768,114 @@ function renderRawTable() {
   const last3 = rows.slice(-3);
   const avg3 = f => {
     const vals = last3.map(r => r[f]).filter(v => v != null);
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    return vals.length ? Math.ceil(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   };
   const avgRow = { label: '3-Yr Avg', inq: avg3('inq'), app: avg3('app'), adm: avg3('adm'), conf: avg3('conf'), enr: avg3('enr') };
 
   tbody.innerHTML = rows.map(r => makeRow(r, '')).join('') + makeRow(avgRow, 'raw-avg-row');
 }
 
-// ── CSV Export ──────────────────────────────────────────────
+// ── Historical Term Comparison View ──────────────────────────
+function renderHistView() {
+  const term = curHistTerm;
+  const termColor = term === 'Fall' ? 'var(--fall)' : term === 'Spring' ? 'var(--spring)' : 'var(--summer)';
+
+  // Gather all term rows for the selected term across all AYs
+  const rows = [];
+  ayList.forEach(ay => {
+    const code = getTermCode(ay, term);
+    const d = code ? termData[code] : null;
+    if (!d) return;
+    const match = ay.match(/AY(\d{2})-(\d{2})/);
+    const y1 = match ? 2000 + parseInt(match[1]) : '';
+    const y2 = match ? 2000 + parseInt(match[2]) : '';
+    const label = term === 'Fall' ? `Fall ${y1}` : term === 'Spring' ? `Spring ${y2}` : `Summer ${y2}`;
+    rows.push({ label, ay, inq: d.inquiries, app: d.applications, adm: d.admissions, conf: d.confirmed, enr: d.enrolled });
+  });
+
+  // Update header/pill
+  
+  document.getElementById('hdr-sub').textContent = `${term} term — historical comparison`;
+  document.getElementById('pipe-note').textContent = `All ${term} terms`;
+
+  // Metrics: show most recent row
+  const latest = rows[rows.length - 1];
+  const prior  = rows[rows.length - 2];
+  const vals  = latest ? [latest.inq, latest.app, latest.adm, latest.conf, latest.enr] : Array(5).fill(null);
+  const prVals = prior  ? [prior.inq,  prior.app,  prior.adm,  prior.conf,  prior.enr]  : Array(5).fill(null);
+  const top = vals[0] || 1;
+  vals.forEach((val, i) => {
+    document.getElementById('m'+i).textContent = fmt(val);
+    const delta = (val != null && prVals[i] != null) ? val - prVals[i] : null;
+    const del = document.getElementById('d'+i);
+    if (delta != null) {
+      del.textContent = (delta >= 0 ? '+' : '') + fmt(delta) + ' vs ' + (prior?.label || 'prior');
+      del.className = 'metric-delta ' + (delta > 0 ? 'up' : delta < 0 ? 'dn' : 'nt');
+    } else { del.textContent = ''; }
+    const pct = val != null ? Math.round((val / top) * 100) : 0;
+    const bar = document.getElementById('bf'+i);
+    if (bar) { bar.style.width = Math.max(pct, 4) + '%'; bar.textContent = val != null ? fmt(val) : ''; }
+    document.getElementById('fc'+i).textContent = fmt(val);
+    const yy = document.getElementById('fy'+i);
+    if (yy && delta != null) {
+      yy.textContent = (delta >= 0 ? '+' : '') + fmt(delta);
+      yy.className = 'f-yoy ' + (delta >= 0 ? 'up' : 'dn');
+    } else if (yy) { yy.textContent = '—'; yy.className = 'f-yoy nt'; }
+    if (i > 0) {
+      const conv = document.getElementById('fconv'+i);
+      if (conv && val != null && vals[i-1]) conv.textContent = Math.round(val / vals[i-1] * 100) + '%';
+      else if (conv) conv.textContent = '—';
+    }
+  });
+
+  // Hide term breakdown cards, update YoY chart with historical term data
+  document.getElementById('term-section').style.display = 'none';
+  updateYoYChart(vals, prVals);
+
+  // Build historical comparison table
+  const fmtN = n => (n == null) ? '—' : Number(n).toLocaleString();
+  const fmtP = (a, b) => (a != null && b != null && b > 0) ? (a / b * 100).toFixed(1) + '%' : '—';
+  const note = document.getElementById('raw-table-note');
+  if (note) note.textContent = `All ${term} terms · ${rows.length} year${rows.length !== 1 ? 's' : ''}`;
+
+  const head = document.getElementById('raw-table-head');
+  if (head) {
+    head.innerHTML = ['Term','Inquiries','Applications','Admitted','Confirmed','Enrolled','Inq→App','App→Adm','Adm→Conf','Conf→Enr']
+      .map(h => `<th class="raw-th">${h}</th>`).join('');
+  }
+
+  const makeRow = (r, cls) => `<tr class="${cls}">
+    <td class="raw-td">${r.label}</td>
+    <td class="raw-td">${fmtN(r.inq)}</td>
+    <td class="raw-td">${fmtN(r.app)}</td>
+    <td class="raw-td">${fmtN(r.adm)}</td>
+    <td class="raw-td">${fmtN(r.conf)}</td>
+    <td class="raw-td">${fmtN(r.enr)}</td>
+    <td class="raw-td">${fmtP(r.app, r.inq)}</td>
+    <td class="raw-td">${fmtP(r.adm, r.app)}</td>
+    <td class="raw-td">${fmtP(r.conf, r.adm)}</td>
+    <td class="raw-td">${fmtP(r.enr, r.conf)}</td>
+  </tr>`;
+
+  const last3 = rows.slice(-3);
+  const avg3 = f => { const vals = last3.map(r => r[f]).filter(v => v != null); return vals.length ? Math.ceil(vals.reduce((a,b) => a+b,0)/vals.length) : null; };
+  const avgRow = { label: '3-Yr Avg', inq: avg3('inq'), app: avg3('app'), adm: avg3('adm'), conf: avg3('conf'), enr: avg3('enr') };
+
+  const tbody = document.getElementById('raw-table-body');
+  if (tbody) tbody.innerHTML = rows.map(r => makeRow(r,'')).join('') + makeRow(avgRow,'raw-avg-row');
+
+  // Update trend chart to highlight selected term
+  if (trendChart) {
+    trendChart.data.datasets.forEach(ds => {
+      ds.backgroundColor = ds.label === term
+        ? (term === 'Fall' ? '#185FA5' : term === 'Spring' ? '#5A8C3C' : '#BA7517')
+        : 'rgba(180,180,180,0.3)';
+    });
+    trendChart.update();
+  }
+}
 function exportCSV() {
-  const rows = [['Type','Code','Academic Year','Term','Inquiries','Applications','Admissions','Confirmed','Enrolled']];
+  const rows = [['Type','Code','Academic Year','Term','Inquiries','Applications','Admitted','Confirmed','Enrolled']];
 
   // AY rows
   ayList.forEach(ay => {
@@ -785,6 +967,8 @@ async function saveData() {
 
 // Init
 fetchAll();
+const tnDate = document.getElementById('tn-date');
+if (tnDate) tnDate.textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 </script>
 </body>
 </html>
