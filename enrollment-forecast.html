@@ -559,11 +559,18 @@ const AVG = {
   },
 };
 
-// New student forecast seed (from student-forecast dashboard, mid-point estimates)
+// New student forecast — loaded live from new_student_forecast Supabase table
+// Fallback seed values used when Supabase is offline or table is empty
 const NEW_STUDENT_FORECAST = {
-  fall:   356,  // SU→Fall mid-estimate from 3-yr avg
+  fall:   356,  // SU→Fall mid-estimate
   spring: 154,  // F→Spring mid-estimate
   summer: 134,  // SP→Summer mid-estimate
+  // Ranges for display (populated from Supabase)
+  fallLow: null, fallHigh: null,
+  springLow: null, springHigh: null,
+  summerLow: null, summerHigh: null,
+  source: 'seed', // 'seed' | 'supabase'
+  updatedAt: null,
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -839,12 +846,51 @@ function mergeSBData(sbRows) {
 async function loadFromSupabase() {
   setStatus('loading', 'Loading from Supabase...');
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=*&order=academic_year,transition_type`, { headers: SB_HDR });
-    if (!res.ok) throw new Error('fetch failed');
-    const rows = await res.json();
+    const [reconRes, nsfRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/enrollment_reconciliation?select=*&order=academic_year,transition_type`, { headers: SB_HDR }),
+      fetch(`${SB_URL}/rest/v1/new_student_forecast?select=*&order=academic_year,term`, { headers: SB_HDR }),
+    ]);
+
+    if (!reconRes.ok) throw new Error('reconciliation fetch failed');
+    const rows = await reconRes.json();
     if (rows.length > 0) mergeSBData(rows);
-    setStatus('live', `Supabase · ${rows.length} records · ${new Date().toLocaleTimeString()}`);
-    document.getElementById('footer-tx').textContent = `Source: Supabase enrollment_reconciliation · ${rows.length} records · Last synced ${new Date().toLocaleTimeString()}`;
+
+    // Merge new student forecast values
+    if (nsfRes.ok) {
+      const nsfRows = await nsfRes.json();
+      if (nsfRows.length > 0) {
+        // Use the most recent row per term (highest academic_year)
+        const byTerm = {};
+        nsfRows.forEach(r => {
+          const t = r.term?.toLowerCase();
+          if (!t) return;
+          if (!byTerm[t] || r.academic_year > byTerm[t].academic_year) byTerm[t] = r;
+        });
+        if (byTerm.fall   && byTerm.fall.mid   != null) {
+          NEW_STUDENT_FORECAST.fall      = byTerm.fall.mid;
+          NEW_STUDENT_FORECAST.fallLow   = byTerm.fall.low;
+          NEW_STUDENT_FORECAST.fallHigh  = byTerm.fall.high;
+        }
+        if (byTerm.spring && byTerm.spring.mid != null) {
+          NEW_STUDENT_FORECAST.spring    = byTerm.spring.mid;
+          NEW_STUDENT_FORECAST.springLow = byTerm.spring.low;
+          NEW_STUDENT_FORECAST.springHigh= byTerm.spring.high;
+        }
+        if (byTerm.summer && byTerm.summer.mid != null) {
+          NEW_STUDENT_FORECAST.summer    = byTerm.summer.mid;
+          NEW_STUDENT_FORECAST.summerLow = byTerm.summer.low;
+          NEW_STUDENT_FORECAST.summerHigh= byTerm.summer.high;
+        }
+        NEW_STUDENT_FORECAST.source    = 'supabase';
+        NEW_STUDENT_FORECAST.updatedAt = nsfRows[nsfRows.length - 1]?.updated_at ?? null;
+      }
+    }
+
+    const recordCount = rows.length;
+    setStatus('live', `Supabase · ${recordCount} reconciliation records · new student forecast ${NEW_STUDENT_FORECAST.source === 'supabase' ? 'live' : 'seed'} · ${new Date().toLocaleTimeString()}`);
+    document.getElementById('footer-tx').textContent =
+      `Source: Supabase enrollment_reconciliation + new_student_forecast · ${recordCount} records · Last synced ${new Date().toLocaleTimeString()}` +
+      (NEW_STUDENT_FORECAST.updatedAt ? ` · Forecast updated ${new Date(NEW_STUDENT_FORECAST.updatedAt).toLocaleDateString()}` : '');
   } catch(e) {
     setStatus('warn', 'Supabase offline · using seed data · changes saved locally');
     console.warn('Supabase load failed:', e);
@@ -1440,7 +1486,7 @@ function recalcBlock(type) {
   set(`${type}-start`,       fmt(calc.startCount));
   set(`${type}-grad-src-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg rate' : 'official'));
   set(`${type}-grad-pct`,    fmtPct(calc.gradPct));
-  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? 'from forecast dashboard' : 'official census'));
+  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? (NEW_STUDENT_FORECAST.source === 'supabase' ? '⚡ live from New Student Forecast' : 'from forecast dashboard (seed)') : 'official census'));
   set(`${type}-others-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg' : ''));
 
   // Rows with display/input dual mode
@@ -1495,7 +1541,7 @@ function recalcBlockValues(type) {
   set(`${type}-nr-pct`,      fmtPct(calc.nrRate));
   set(`${type}-retained`,    fmt(calc.retained));
   set(`${type}-ret-pct`,     fmtPct(calc.retRate));
-  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? 'from forecast dashboard' : 'official census'));
+  set(`${type}-ns-note`,     estMode ? '✏ manual estimate' : (isFc ? (NEW_STUDENT_FORECAST.source === 'supabase' ? '⚡ live from New Student Forecast' : 'from forecast dashboard (seed)') : 'official census'));
   set(`${type}-others-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg' : ''));
   set(`${type}-grad-src-note`, estMode ? '✏ manual estimate' : (isFc ? '3-term avg rate' : 'official'));
 
