@@ -24,17 +24,17 @@
     .page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;background:var(--w);border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);box-shadow:0 2px 16px rgba(0,0,0,.08);}
 
     /* ── Top Nav ── */
-    .topnav{padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:.5px solid var(--bdr);background:var(--pd);}
+    .topnav{padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:.5px solid var(--bdr);background:var(--w);}
     .tn-logo{display:flex;align-items:center;gap:10px;}
     .tn-logomark{width:22px;height:26px;flex-shrink:0;}
-    .tn-brand{font-family:var(--sans);font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.02em;}
-    .tn-brand em{color:var(--gl);font-style:normal;}
+    .tn-brand{font-family:var(--sans);font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;}
+    .tn-brand em{color:var(--p);font-style:normal;}
     .tn-links{display:flex;gap:2px;}
-    .tn-link{font-size:11px;font-weight:600;color:rgba(255,255,255,.55);padding:5px 10px;border-radius:5px;text-decoration:none;transition:background .1s;}
-    .tn-link:hover{background:rgba(255,255,255,.1);color:#fff;}
-    .tn-link.active{background:rgba(255,255,255,.15);color:#fff;}
+    .tn-link{font-size:11px;font-weight:600;color:var(--txm);padding:5px 10px;border-radius:5px;text-decoration:none;transition:background .1s;}
+    .tn-link:hover{background:var(--off);color:var(--tx);}
+    .tn-link.active{background:var(--pl);color:var(--p);}
     .tn-right{display:flex;align-items:center;gap:8px;}
-    .tn-date{font-size:11px;color:rgba(255,255,255,.45);}
+    .tn-date{font-size:11px;color:var(--txl);}
     .tn-badge{background:var(--g);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.04em;}
     @media(max-width:768px){.tn-links{display:none;}}
 
@@ -228,7 +228,7 @@
       <div class="tn-brand">Mercy <em>College</em> of Health Sciences</div>
     </div>
     <div class="tn-links">
-      <a href="https://romkeymm.github.io/MercyU/" class="tn-link">Dashboard</a>
+      <a href="https://www.mchs.edu" class="tn-link">Dashboard</a>
       <a href="admissions-funnel.html" class="tn-link">Admissions Funnel</a>
       <a href="student-forecast.html" class="tn-link">New Student Forecast</a>
       <a href="enrollment-forecast.html" class="tn-link active">Total Enrollment Forecast</a>
