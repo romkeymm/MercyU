@@ -23,6 +23,49 @@
     body{font-family:var(--sans);background:#EDEAE6;min-height:100vh;padding:20px 16px;}
     .page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;background:var(--w);border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);box-shadow:0 2px 16px rgba(0,0,0,.08);}
 
+    /* ── Top Nav ── */
+    .topnav{padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:.5px solid var(--bdr);background:var(--pd);}
+    .tn-logo{display:flex;align-items:center;gap:10px;}
+    .tn-logomark{width:22px;height:26px;flex-shrink:0;}
+    .tn-brand{font-family:var(--sans);font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.02em;}
+    .tn-brand em{color:var(--gl);font-style:normal;}
+    .tn-links{display:flex;gap:2px;}
+    .tn-link{font-size:11px;font-weight:600;color:rgba(255,255,255,.55);padding:5px 10px;border-radius:5px;text-decoration:none;transition:background .1s;}
+    .tn-link:hover{background:rgba(255,255,255,.1);color:#fff;}
+    .tn-link.active{background:rgba(255,255,255,.15);color:#fff;}
+    .tn-right{display:flex;align-items:center;gap:8px;}
+    .tn-date{font-size:11px;color:rgba(255,255,255,.45);}
+    .tn-badge{background:var(--g);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.04em;}
+    @media(max-width:768px){.tn-links{display:none;}}
+
+    /* ── Enter Actuals Modal ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal-box{background:#fff;border-radius:10px;padding:24px;width:580px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+    .modal-hd{font-size:15px;font-weight:700;color:var(--pd);margin-bottom:3px;}
+    .modal-sub{font-size:11px;color:var(--txm);margin-bottom:20px;}
+    .modal-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txl);margin:16px 0 8px;border-top:.5px solid var(--bdr);padding-top:12px;}
+    .modal-section:first-of-type{margin-top:0;border-top:none;padding-top:0;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .form-group{display:flex;flex-direction:column;gap:4px;}
+    .form-label{font-size:11px;font-weight:600;color:var(--tx);}
+    .form-sublabel{font-size:9px;color:var(--txl);margin-top:1px;}
+    .form-input{padding:8px 10px;border:.5px solid var(--bdr);border-radius:5px;font-size:13px;font-family:var(--sans);color:var(--tx);background:#fff;}
+    .form-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 2px var(--pl);}
+    .form-input.auto-filled{background:#F0FBE8;border-color:var(--gl);}
+    .form-select{padding:8px 10px;border:.5px solid var(--bdr);border-radius:5px;font-size:13px;font-family:var(--sans);color:var(--tx);background:#fff;cursor:pointer;}
+    .form-select:focus{outline:none;border-color:var(--p);}
+    .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;align-items:center;}
+    .btn-cancel{background:var(--off);color:var(--tx);border:.5px solid var(--bdr);padding:8px 16px;border-radius:5px;cursor:pointer;font-size:12px;font-family:var(--sans);}
+    .btn-save{background:var(--p);color:#fff;border:none;padding:8px 20px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans);}
+    .btn-save:hover{background:var(--pm);}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed;}
+    .save-msg{font-size:11px;margin-right:auto;}
+    .save-msg.success{color:var(--up);}
+    .save-msg.error{color:var(--dn);}
+    .autofill-note{font-size:10px;color:var(--g);font-style:italic;margin-top:4px;display:none;}
+
     /* ── Header ── */
     .hdr{background:var(--pd);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
     .hdr-l{display:flex;align-items:center;gap:12px;}
@@ -36,6 +79,8 @@
     .btn-ghost:hover{background:rgba(255,255,255,.25);}
     .btn-green{background:var(--g);color:#fff;}
     .btn-green:hover{opacity:.9;}
+    .btn-primary{background:var(--g);color:#fff;border:none;}
+    .btn-primary:hover{background:var(--gd);}
 
     /* ── Filter bar ── */
     .filter-bar{background:var(--off);border-bottom:.5px solid var(--bdr);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
@@ -171,6 +216,31 @@
 <body>
 <div class="page">
 
+  <!-- Top Nav -->
+  <div class="topnav">
+    <div class="tn-logo">
+      <svg class="tn-logomark" viewBox="0 0 22 26" fill="none">
+        <rect width="22" height="26" rx="2" fill="#4A2C6B"/>
+        <rect x="2.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="12.5" y="2.5" width="7" height="21" rx="1" fill="#5A8C3C"/>
+        <rect x="2.5" y="10" width="17" height="6" rx="1" fill="#7AB558" opacity=".4"/>
+      </svg>
+      <div class="tn-brand">Mercy <em>College</em> of Health Sciences</div>
+    </div>
+    <div class="tn-links">
+      <a href="https://romkeymm.github.io/MercyU/" class="tn-link">Dashboard</a>
+      <a href="admissions-funnel.html" class="tn-link">Admissions Funnel</a>
+      <a href="student-forecast.html" class="tn-link">New Student Forecast</a>
+      <a href="enrollment-forecast.html" class="tn-link active">Total Enrollment Forecast</a>
+      <a href="https://analytics.google.com" class="tn-link">Analytics</a>
+      <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
+    </div>
+    <div class="tn-right">
+      <div class="tn-date" id="tn-date"></div>
+      <div class="tn-badge">Staff</div>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="hdr">
     <div class="hdr-l">
@@ -182,8 +252,7 @@
     </div>
     <div class="hdr-r">
       <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
-      <a href="admissions-funnel.html" class="btn btn-ghost">Admissions Funnel →</a>
-      <a href="student-forecast.html" class="btn btn-ghost">New Student Forecast →</a>
+      <button class="btn btn-primary" onclick="openActualsModal()">+ Enter Actuals</button>
     </div>
   </div>
 
@@ -333,6 +402,88 @@
   </div>
 
 </div><!-- /page -->
+
+<!-- ── Enter Actuals Modal ── -->
+<div class="modal-overlay" id="actuals-modal">
+  <div class="modal-box">
+    <div class="modal-hd">Enter Actuals</div>
+    <div class="modal-sub">Record official post-census figures for a completed term transition. These will update the reconciliation blocks and flip them from Forecast to Actual.</div>
+
+    <div class="modal-section">Transition</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Academic Year</label>
+        <select class="form-select" id="act-ay" onchange="onActualsAYChange()">
+          <option value="AY22-23">AY 22–23</option>
+          <option value="AY23-24">AY 23–24</option>
+          <option value="AY24-25">AY 24–25</option>
+          <option value="AY25-26" selected>AY 25–26</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Term Transition</label>
+        <select class="form-select" id="act-transition" onchange="onActualsTransitionChange()">
+          <option value="fall_to_spring">Fall → Spring</option>
+          <option value="spring_to_summer">Spring → Summer</option>
+          <option value="summer_to_fall">Summer → Fall</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-section">Enrollment Counts</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Official Start Count</label>
+        <div class="form-sublabel" id="act-start-lbl">Official Fall enrollment</div>
+        <input class="form-input" type="number" id="act-start" placeholder="e.g. 931" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Official End Count</label>
+        <div class="form-sublabel" id="act-end-lbl">Official Spring enrollment (census)</div>
+        <input class="form-input" type="number" id="act-end" placeholder="e.g. 869" min="0" />
+        <div class="autofill-note" id="act-autofill-note">⚡ Auto-filled from Admissions Funnel census data</div>
+      </div>
+    </div>
+
+    <div class="modal-section">Reconciliation Detail</div>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Graduates</label>
+        <div class="form-sublabel">From SSRS report (positive number)</div>
+        <input class="form-input" type="number" id="act-grads" placeholder="e.g. 135" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Non-Returning</label>
+        <div class="form-sublabel">Attrition plug (positive number)</div>
+        <input class="form-input" type="number" id="act-nonret" placeholder="e.g. 116" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Others Returning</label>
+        <div class="form-sublabel">Re-enrollments, stop-outs, etc.</div>
+        <input class="form-input" type="number" id="act-others" placeholder="e.g. 10" min="0" />
+      </div>
+    </div>
+    <div class="form-grid" style="margin-top:12px;">
+      <div class="form-group">
+        <label class="form-label">New Students</label>
+        <div class="form-sublabel" id="act-ns-lbl">From census / admissions funnel</div>
+        <input class="form-input" type="number" id="act-newstudents" placeholder="e.g. 144" min="0" />
+        <div class="autofill-note" id="act-ns-autofill-note">⚡ Auto-filled from Admissions Funnel enrolled count</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Census Date</label>
+        <div class="form-sublabel">Official census date for this term</div>
+        <input class="form-input" type="date" id="act-date" />
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <div class="save-msg" id="act-save-msg"></div>
+      <button class="btn-cancel" onclick="closeActualsModal()">Cancel</button>
+      <button class="btn-save" id="act-save-btn" onclick="saveActuals()">Save Actuals to Supabase</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════
@@ -798,7 +949,7 @@ function buildHistTables() {
       const vals = last3.map(r => r[c.field]).filter(v => v != null && !isNaN(v));
       const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
       if (avg == null) return `<td style="text-align:right;">—</td>`;
-      const display = c.isPct ? (avg*100).toFixed(1)+'%' : Math.round(avg).toLocaleString();
+      const display = c.isPct ? (avg*100).toFixed(1)+'%' : Math.ceil(avg).toLocaleString();
       return `<td style="text-align:right;">${display}</td>`;
     }).join('');
 
@@ -1423,7 +1574,7 @@ function renderAYSummary(ay) {
       const priorVal = priorFn();
       if (priorVal != null) {
         const diff = Math.round(val - priorVal);
-        el.textContent = (diff >= 0 ? '+' : '') + fmt(Math.abs(diff)) + ' vs ' + priorAY;
+        el.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString() + ' vs ' + priorAY;
         el.className = 'metric-delta ' + ((diff >= 0) !== invertFav ? 'up' : 'dn');
       } else { el.textContent = ''; el.className = 'metric-delta nt'; }
     } else { el.textContent = ''; el.className = 'metric-delta nt'; }
@@ -1591,6 +1742,226 @@ function attachTargetSavers() {
   });
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ENTER ACTUALS MODAL
+// ══════════════════════════════════════════════════════════════════
+
+const TRANSITION_LABELS = {
+  fall_to_spring:   { startLabel: 'Official Fall enrollment',   endLabel: 'Official Spring enrollment (census)', nsLabel: 'Spring new students (from census)' },
+  spring_to_summer: { startLabel: 'Official Spring enrollment', endLabel: 'Official Summer enrollment (census)', nsLabel: 'Summer new students (from census)' },
+  summer_to_fall:   { startLabel: 'Official Summer enrollment', endLabel: 'Official Fall enrollment (census)',   nsLabel: 'Fall new students (from census)' },
+};
+
+// Map transition → term for auto-filling enrolled count from enrollment_funnel_ay
+const TRANSITION_TO_TERM = {
+  fall_to_spring:   'Spring',
+  spring_to_summer: 'Summer',
+  summer_to_fall:   'Fall',
+};
+
+// AY → term year mapping for enrollment_funnel_ay lookup
+function getTermYearForAY(ay, term) {
+  const match = ay.match(/AY(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const y1 = 2000 + parseInt(match[1]);
+  const y2 = 2000 + parseInt(match[2]);
+  if (term === 'Fall')   return y1;
+  if (term === 'Spring') return y2;
+  if (term === 'Summer') return y2;
+  return null;
+}
+
+function openActualsModal() {
+  // Default to curAY
+  const ayEl = document.getElementById('act-ay');
+  if (ayEl) ayEl.value = curAY;
+  document.getElementById('act-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('act-save-msg').textContent = '';
+  document.getElementById('act-save-msg').className = 'save-msg';
+  onActualsTransitionChange(); // update labels & try autofill
+  document.getElementById('actuals-modal').classList.add('open');
+}
+
+function closeActualsModal() {
+  document.getElementById('actuals-modal').classList.remove('open');
+}
+
+function onActualsAYChange() {
+  onActualsTransitionChange();
+}
+
+async function onActualsTransitionChange() {
+  const transition = document.getElementById('act-transition').value;
+  const ay = document.getElementById('act-ay').value;
+  const cfg = TRANSITION_LABELS[transition];
+
+  // Update sublabels
+  document.getElementById('act-start-lbl').textContent = cfg.startLabel;
+  document.getElementById('act-end-lbl').textContent   = cfg.endLabel;
+  document.getElementById('act-ns-lbl').textContent    = cfg.nsLabel;
+
+  // Pre-fill start count from seed data
+  const datasets = { fall_to_spring: F2S, spring_to_summer: S2SU, summer_to_fall: SU2F };
+  const row = datasets[transition]?.find(r => r.ay === ay);
+  const startEl = document.getElementById('act-start');
+  if (row) {
+    const startVal = transition === 'fall_to_spring' ? row.offFall
+                   : transition === 'spring_to_summer' ? row.offSpring
+                   : row.offSummer;
+    if (startVal != null) { startEl.value = startVal; startEl.classList.add('auto-filled'); }
+    else { startEl.value = ''; startEl.classList.remove('auto-filled'); }
+  } else {
+    startEl.value = ''; startEl.classList.remove('auto-filled');
+  }
+
+  // Auto-fill new students + official end from enrollment_funnel_ay (Supabase)
+  const term = TRANSITION_TO_TERM[transition];
+  const termYear = getTermYearForAY(ay, term);
+  const endEl = document.getElementById('act-end');
+  const nsEl  = document.getElementById('act-newstudents');
+  const autofillNote   = document.getElementById('act-autofill-note');
+  const nsAutofillNote = document.getElementById('act-ns-autofill-note');
+
+  // Reset autofill indicators
+  endEl.classList.remove('auto-filled');
+  nsEl.classList.remove('auto-filled');
+  autofillNote.style.display = 'none';
+  nsAutofillNote.style.display = 'none';
+
+  // Try to pull from Supabase enrollment_funnel_ay
+  try {
+    const termCode = termYear ? `${termYear}${term.substring(0,2).toUpperCase()}` : null;
+    const query = termCode
+      ? `${SB_URL}/rest/v1/enrollment_funnel_term?select=enrolled,academic_year,term&academic_year=eq.${ay}&term=eq.${term}`
+      : null;
+
+    if (query) {
+      const res = await fetch(query, { headers: SB_HDR });
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows.length > 0 && rows[0].enrolled != null) {
+          const enrolled = rows[0].enrolled;
+          nsEl.value = enrolled;
+          nsEl.classList.add('auto-filled');
+          nsAutofillNote.style.display = 'block';
+        }
+      }
+    }
+
+    // Also try enrollment_funnel_ay for the full-AY enrolled total as official end hint
+    const ayQuery = `${SB_URL}/rest/v1/enrollment_funnel_ay?select=enrolled,academic_year,term&academic_year=eq.${ay}&term=eq.${term}`;
+    const ayRes = await fetch(ayQuery, { headers: SB_HDR });
+    if (ayRes.ok) {
+      const ayRows = await ayRes.json();
+      if (ayRows.length > 0 && ayRows[0].enrolled != null && !endEl.value) {
+        // Only hint — don't override if already filled
+        endEl.value = ayRows[0].enrolled;
+        endEl.classList.add('auto-filled');
+        autofillNote.style.display = 'block';
+      }
+    }
+  } catch(e) {
+    console.warn('Autofill fetch failed:', e);
+  }
+}
+
+async function saveActuals() {
+  const btn = document.getElementById('act-save-btn');
+  const msg = document.getElementById('act-save-msg');
+  btn.disabled = true;
+  msg.className = 'save-msg';
+  msg.textContent = 'Saving…';
+
+  const ay         = document.getElementById('act-ay').value;
+  const transition = document.getElementById('act-transition').value;
+  const startVal   = parseInt(document.getElementById('act-start').value) || null;
+  const endVal     = parseInt(document.getElementById('act-end').value) || null;
+  const grads      = parseInt(document.getElementById('act-grads').value) || null;
+  const nonRet     = parseInt(document.getElementById('act-nonret').value) || null;
+  const others     = parseInt(document.getElementById('act-others').value) || null;
+  const newStu     = parseInt(document.getElementById('act-newstudents').value) || null;
+  const censusDate = document.getElementById('act-date').value || null;
+
+  if (!endVal) {
+    msg.className = 'save-msg error';
+    msg.textContent = '✗ Official End Count is required.';
+    btn.disabled = false;
+    return;
+  }
+
+  // Compute derived fields
+  const gradsNeg   = grads  != null ? -Math.abs(grads)  : null;
+  const nonRetNeg  = nonRet != null ? -Math.abs(nonRet) : null;
+  const gradPct    = (gradsNeg != null && startVal) ? parseFloat((gradsNeg / startVal).toFixed(4)) : null;
+  const maxReturn  = startVal != null && gradsNeg != null ? startVal + gradsNeg : null;
+  const nrPct      = (nonRetNeg != null && maxReturn) ? parseFloat((nonRetNeg / maxReturn).toFixed(4)) : null;
+  const retained   = maxReturn != null && nonRetNeg != null ? maxReturn + nonRetNeg : null;
+  const retPct     = (retained != null && maxReturn) ? parseFloat((retained / maxReturn).toFixed(4)) : null;
+
+  const payload = {
+    academic_year:    ay,
+    transition_type:  transition,
+    official_start:   startVal,
+    official_end:     endVal,
+    graduates:        gradsNeg,
+    grad_pct:         gradPct,
+    non_returning:    nonRetNeg,
+    nr_pct:           nrPct,
+    retained:         retained,
+    ret_pct:          retPct,
+    new_students:     newStu,
+    others_returning: others,
+    census_date:      censusDate,
+    is_forecast:      false,
+  };
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/enrollment_reconciliation`, {
+      method: 'POST',
+      headers: SB_HDR,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err.substring(0, 150));
+    }
+
+    // Merge into in-memory seed data immediately
+    mergeSBData([{ ...payload }]);
+
+    // Recompute AVGs now that seed data is updated
+    AVG.f2s.gradPct    = avg3(F2S, 'fallGradPct');
+    AVG.f2s.nrPct      = avg3(F2S, 'nrPct');
+    AVG.f2s.othersRet  = avg3(F2S, 'othersRet');
+    AVG.f2s.newStudents= avg3(F2S, 'newStudents');
+    AVG.s2su.gradPct   = avg3(S2SU, 'spGradPct');
+    AVG.s2su.nrPct     = avg3(S2SU, 'nrPct');
+    AVG.s2su.othersRet = avg3(S2SU, 'othersRet');
+    AVG.s2su.newStudents=avg3(S2SU, 'newStudents');
+    AVG.su2f.gradPct   = avg3(SU2F, 'suGradPct');
+    AVG.su2f.nrPct     = avg3(SU2F, 'nrPct');
+    AVG.su2f.othersRet = avg3(SU2F, 'othersRet');
+    AVG.su2f.newStudents=avg3(SU2F, 'newStudents');
+
+    // Rebuild historical tables and re-render blocks
+    buildHistTables();
+    if (ay === curAY) {
+      ['f2s','s2su','su2f'].forEach(recalcBlockValues);
+      updateKPIsAndSummary();
+    }
+
+    msg.className = 'save-msg success';
+    msg.textContent = `✓ Actuals saved for ${ay} ${transition.replace(/_/g,' ')}`;
+    setStatus('live', `Actuals saved · ${ay} ${transition.replace(/_/g,' ')} · ${new Date().toLocaleTimeString()}`);
+    setTimeout(closeActualsModal, 1800);
+  } catch(e) {
+    msg.className = 'save-msg error';
+    msg.textContent = '✗ ' + e.message;
+    console.error(e);
+  }
+  btn.disabled = false;
+}
+
 // ── Init ──
 buildAYButtons();
 buildHistTables();
@@ -1603,6 +1974,8 @@ loadFromSupabase().then(() => {
   buildHistTables(); // rebuild with any live overwrites
   render();
 });
+const tnDate = document.getElementById('tn-date');
+if (tnDate) tnDate.textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 </script>
 </body>
 </html>
