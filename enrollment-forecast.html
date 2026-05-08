@@ -1205,8 +1205,14 @@ function computeBlock(type, ay) {
   } else if (useEstGrad && manualGrad != null) {
     grads = -Math.abs(manualGrad);
   } else {
-    const gradPct = avgs.gradPct;
-    grads = gradPct != null ? Math.round(startCount * gradPct) : (row?.[type === 'f2s' ? 'fallGrads' : type === 's2su' ? 'spGrads' : 'suGrads'] ?? null);
+    // If this is an actual (not forecast), use the row's official grad figure directly
+    const rowGrads = row?.[type === 'f2s' ? 'fallGrads' : type === 's2su' ? 'spGrads' : 'suGrads'] ?? null;
+    if (!isForward && rowGrads != null) {
+      grads = rowGrads;
+    } else {
+      const gradPct = avgs.gradPct;
+      grads = gradPct != null ? Math.round(startCount * gradPct) : rowGrads;
+    }
   }
 
   const maxReturn = startCount + (grads ?? 0);
