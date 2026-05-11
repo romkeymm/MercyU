@@ -1806,7 +1806,6 @@ function render() {
   ['f2s','s2su','su2f'].forEach(recalcBlockValues);
   updateKPIsAndSummary();
 
-  document.getElementById('view-pill').textContent = `${curAY} · ${curView === 'recon' ? 'Reconciliation' : 'Historical'}`;
   document.getElementById('hdr-sub').textContent = `${curAY} · Historical reconciliation & projection`;
 }
 
@@ -1818,8 +1817,7 @@ function setView(v, btn) {
   btn.className = 'seg-btn active-ay';
   document.getElementById('recon-view').style.display = v === 'recon' ? '' : 'none';
   document.getElementById('hist-view').style.display  = v === 'hist'  ? '' : 'none';
-  document.getElementById('view-pill').textContent = `${curAY} · ${v === 'recon' ? 'Reconciliation' : 'Historical'}`;
-}
+  }
 
 // ── Pre-populate budget targets — check localStorage first, fall back to known defaults ──
 function prefillTargets() {

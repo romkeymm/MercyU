@@ -25,7 +25,6 @@
     /* ── Top Nav ── */
     .topnav{padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:.5px solid var(--bdr);background:var(--w);}
     .tn-logo{display:flex;align-items:center;gap:10px;}
-    .tn-logomark{width:22px;height:26px;flex-shrink:0;}
     .tn-links{display:flex;gap:2px;}
     .tn-link{font-size:11px;font-weight:600;color:var(--txm);padding:5px 10px;border-radius:5px;text-decoration:none;transition:background .1s;}
     .tn-link:hover{background:var(--off);color:var(--tx);}
@@ -224,9 +223,7 @@
     </div>
     <div class="tn-links">
       <a href="https://romkeymm.github.io/MercyU/" class="tn-link">Dashboard</a>
-      <a href="admissions-funnel.html" class="tn-link">Admissions Funnel</a>
       <a href="student-forecast.html" class="tn-link active">New Student Forecast</a>
-      <a href="enrollment-forecast.html" class="tn-link">Total Enrollment Forecast</a>
       <a href="https://analytics.google.com" class="tn-link">Analytics</a>
       <a href="https://mercycollege.sharepoint.com/sites/PulseCampusCalendar/SitePages/Campus-Calendar.aspx" class="tn-link">Calendar</a>
     </div>
@@ -543,6 +540,8 @@ const SEED_CENSUS = [
   { academic_year:'AY21-22', term:'Fall', inquiries:2107, applications:1392, admissions:604, confirmed:361, enrolled:294 },
   { academic_year:'AY22-23', term:'Fall', inquiries:null, applications:1318, admissions:624, confirmed:333, enrolled:292 },
   { academic_year:'AY23-24', term:'Fall', inquiries:2106, applications:1837, admissions:856, confirmed:458, enrolled:376 },
+  { academic_year:'AY24-25', term:'Fall', inquiries:2106, applications:1837, admissions:856, confirmed:458, enrolled:375 },
+  { academic_year:'AY25-26', term:'Fall', inquiries:1734, applications:1656, admissions:772, confirmed:398, enrolled:366 },
   // ── SPRING ────────────────────────────────────────────────────────────────
   { academic_year:'AY16-17', term:'Spring', inquiries:721,  applications:376, admissions:158, confirmed:106, enrolled:93  },
   { academic_year:'AY17-18', term:'Spring', inquiries:626,  applications:369, admissions:143, confirmed:77,  enrolled:66  },
@@ -553,11 +552,13 @@ const SEED_CENSUS = [
   { academic_year:'AY22-23', term:'Spring', inquiries:1037, applications:637, admissions:287, confirmed:153, enrolled:128 },
   { academic_year:'AY23-24', term:'Spring', inquiries:729,  applications:655, admissions:263, confirmed:149, enrolled:128 },
   { academic_year:'AY24-25', term:'Spring', inquiries:1054, applications:988, admissions:354, confirmed:190, enrolled:159 },
+  { academic_year:'AY25-26', term:'Spring', inquiries:801,  applications:763, admissions:399, confirmed:184, enrolled:144 },
   // ── SUMMER ────────────────────────────────────────────────────────────────
   { academic_year:'AY20-21', term:'Summer', inquiries:743, applications:616, admissions:272, confirmed:130, enrolled:108 },
   { academic_year:'AY21-22', term:'Summer', inquiries:616, applications:563, admissions:232, confirmed:103, enrolled:77  },
   { academic_year:'AY22-23', term:'Summer', inquiries:478, applications:498, admissions:248, confirmed:130, enrolled:99  },
   { academic_year:'AY23-24', term:'Summer', inquiries:982, applications:917, admissions:426, confirmed:193, enrolled:164 },
+  { academic_year:'AY24-25', term:'Summer', inquiries:982, applications:917, admissions:426, confirmed:193, enrolled:164 },
 ];
 
 // ── Hardcoded tracking-point snapshots (mid-cycle counts from spreadsheets) ──
